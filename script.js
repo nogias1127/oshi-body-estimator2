@@ -859,7 +859,7 @@ function handlePoseCanvasClick(event) {
 
   const now = Date.now();
 
-  if (now - lastPoseClickTime < 250) {
+  if (now - lastPoseClickTime < 200) {
     return;
   }
 
@@ -899,40 +899,6 @@ function handlePoseCanvasClick(event) {
   }
 }
 
-function handlePoseCanvasClick(event) {
-  const canvas = $("poseCanvas");
-
-  if (!canvas || !poseImageState.image) {
-    return;
-  }
-
-  const nextPoint = getNextPosePoint();
-
-  if (!nextPoint) {
-    alert("すべてのポイントを指定済みです。リセットする場合は「ポイントをリセット」を押してください。");
-    return;
-  }
-
-  const point = getCanvasPoint(event, canvas);
-
-  posePointState.points.push({
-    key: nextPoint.key,
-    label: nextPoint.label,
-    x: point.x,
-    y: point.y
-  });
-
-  drawPoseOverlay();
-  updateImageAssistResult();
-
-  const afterNextPoint = getNextPosePoint();
-
-  if (afterNextPoint) {
-    setPoseMessage(`次は「${afterNextPoint.label}」をクリックしてください。`);
-  } else {
-    setPoseMessage("ポイント指定が完了しました。必要なら入力欄に反映できます。");
-  }
-}
 
 function getPosePoint(key) {
   return posePointState.points.find((point) => point.key === key);
@@ -1125,7 +1091,6 @@ function bindEvents() {
 
 if (poseCanvas) {
   poseCanvas.addEventListener("pointerdown", handlePoseCanvasClick);
-  poseCanvas.addEventListener("click", handlePoseCanvasClick);
 } else {
   console.warn("poseCanvas が見つかりません。index.html の canvas ID を確認してください。");
 }
