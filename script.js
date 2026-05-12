@@ -852,6 +852,53 @@ function drawPoseOverlay() {
   }
 }
 
+let lastPoseClickTime = 0;
+
+function handlePoseCanvasClick(event) {
+  event.preventDefault();
+
+  const now = Date.now();
+
+  if (now - lastPoseClickTime < 250) {
+    return;
+  }
+
+  lastPoseClickTime = now;
+
+  const canvas = $("poseCanvas");
+
+  if (!canvas || !poseImageState.image) {
+    return;
+  }
+
+  const nextPoint = getNextPosePoint();
+
+  if (!nextPoint) {
+    alert("すべてのポイントを指定済みです。リセットする場合は「ポイントをリセット」を押してください。");
+    return;
+  }
+
+  const point = getCanvasPoint(event, canvas);
+
+  posePointState.points.push({
+    key: nextPoint.key,
+    label: nextPoint.label,
+    x: point.x,
+    y: point.y
+  });
+
+  drawPoseOverlay();
+  updateImageAssistResult();
+
+  const afterNextPoint = getNextPosePoint();
+
+  if (afterNextPoint) {
+    setPoseMessage(`次は「${afterNextPoint.label}」をクリックしてください。`);
+  } else {
+    setPoseMessage("ポイント指定が完了しました。必要なら入力欄に反映できます。");
+  }
+}
+
 function handlePoseCanvasClick(event) {
   const canvas = $("poseCanvas");
 
