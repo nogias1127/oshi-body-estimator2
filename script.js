@@ -20,26 +20,15 @@ const poseImageState = {
 };
 
 const posePoints = [
-  {
-    key: "top",
-    label: "頭頂"
-  },
-  {
-    key: "chin",
-    label: "あご"
-  },
-  {
-    key: "shoulder",
-    label: "肩"
-  },
-  {
-    key: "crotch",
-    label: "股下"
-  },
-  {
-    key: "foot",
-    label: "足先"
-  }
+  { key: "top", label: "頭頂" },
+  { key: "chin", label: "あご" },
+  { key: "leftShoulder", label: "左肩" },
+  { key: "rightShoulder", label: "右肩" },
+  { key: "leftWaist", label: "ウエスト左" },
+  { key: "rightWaist", label: "ウエスト右" },
+  { key: "crotch", label: "股下" },
+  { key: "leftFoot", label: "左足先" },
+  { key: "rightFoot", label: "右足先" }
 ];
 
 const posePointState = {
@@ -899,7 +888,6 @@ function handlePoseCanvasClick(event) {
   }
 }
 
-
 function getPosePoint(key) {
   return posePointState.points.find((point) => point.key === key);
 }
@@ -907,32 +895,71 @@ function getPosePoint(key) {
 function calculateImageAssist() {
   const top = getPosePoint("top");
   const chin = getPosePoint("chin");
+  const leftShoulder = getPosePoint("leftShoulder");
+  const rightShoulder = getPosePoint("rightShoulder");
+  const leftWaist = getPosePoint("leftWaist");
+  const rightWaist = getPosePoint("rightWaist");
   const crotch = getPosePoint("crotch");
-  const foot = getPosePoint("foot");
+  const leftFoot = getPosePoint("leftFoot");
+  const rightFoot = getPosePoint("rightFoot");
 
-  if (!top || !chin || !crotch || !foot) {
+  if (
+    !top ||
+    !chin ||
+    !leftShoulder ||
+    !rightShoulder ||
+    !leftWaist ||
+    !rightWaist ||
+    !crotch ||
+    !leftFoot ||
+    !rightFoot
+  ) {
     return null;
   }
 
-  const headPx = Math.abs(chin.y - top.y);
-  const bodyPx = Math.abs(foot.y - top.y);
-  const inseamPx = Math.abs(foot.y - crotch.y);
+  const footY = Math.max(leftFoot.y, rightFoot.y);
 
-  if (headPx <= 0 || bodyPx <= 0 || inseamPx <= 0) {
+  const headPx = Math.abs(chin.y - top.y);
+  const bodyPx = Math.abs(footY - top.y);
+  const inseamPx = Math.abs(footY - crotch.y);
+
+  const shoulderPx = Math.abs(rightShoulder.x - leftShoulder.x);
+  const waistPx = Math.abs(rightWaist.x - leftWaist.x);
+
+  if (
+    headPx <= 0 ||
+    bodyPx <= 0 ||
+    inseamPx <= 0 ||
+    shoulderPx <= 0 ||
+    waistPx <= 0
+  ) {
     return null;
   }
 
   const rawHeadRatio = bodyPx / headPx;
   const inseamRatio = inseamPx / bodyPx;
 
+  const shoulderRatio = shoulderPx / bodyPx;
+  const waistRatio = waistPx / bodyPx;
+  const shoulderWaistRatio = shoulderPx / waistPx;
+
   const headRatio = normalizeHeadRatio(rawHeadRatio);
   const legType = inferLegType(inseamRatio);
+  const shoulderType = inferShoulderType(shoulderRatio);
+  const waistType = inferWaistType(waistRatio);
+  const silhouetteType = inferSilhouetteType(shoulderWaistRatio);
 
   return {
     rawHeadRatio,
     headRatio,
     inseamRatio,
-    legType
+    legType,
+    shoulderRatio,
+    waistRatio,
+    shoulderWaistRatio,
+    shoulderType,
+    waistType,
+    silhouetteType
   };
 }
 
@@ -962,6 +989,50 @@ function inferLegType(inseamRatio) {
   return "veryLong";
 }
 
+function inferShoulderType(shoulderRatio) {
+  if (shoulderRatio < 0.215) {
+    return "narrow";
+  }
+
+  if (shoulderRatio < 0.245) {
+    return "normal";
+  }
+
+  if (shoulderRatio < 0.275) {
+    return "wide";
+  }
+
+  return "veryWide";
+}
+
+function inferWaistType(waistRatio) {
+  if (waistRatio < 0.135) {
+    return "slim";
+  }
+
+  if (waistRatio < 0.165) {
+    return "normal";
+  }
+
+  return "thick";
+}
+
+function inferSilhouetteType(shoulderWaistRatio) {
+  if (shoulderWaistRatio >= 1.55) {
+    return "invertedTriangle";
+  }
+
+  if (shoulderWaistRatio >= 1.35) {
+    return "slightlyInverted";
+  }
+
+  if (shoulderWaistRatio >= 1.15) {
+    return "straight";
+  }
+
+  return "soft";
+}
+
 function getLegTypeLabel(value) {
   const labels = {
     short: "短め",
@@ -971,6 +1042,38 @@ function getLegTypeLabel(value) {
   };
 
   return labels[value] || "標準";
+}
+
+function getShoulderTypeLabel(value) {
+  const labels = {
+    narrow: "華奢・肩幅控えめ",
+    normal: "自然",
+    wide: "やや広め",
+    veryWide: "かなり広め"
+  };
+
+  return labels[value] || "自然";
+}
+
+function getWaistTypeLabel(value) {
+  const labels = {
+    slim: "細め",
+    normal: "自然",
+    thick: "厚みあり"
+  };
+
+  return labels[value] || "自然";
+}
+
+function getSilhouetteTypeLabel(value) {
+  const labels = {
+    invertedTriangle: "逆三角形寄り",
+    slightlyInverted: "やや逆三角形寄り",
+    straight: "直線的",
+    soft: "なだらか"
+  };
+
+  return labels[value] || "直線的";
 }
 
 function updateImageAssistResult() {
@@ -1005,6 +1108,9 @@ function updateImageAssistResult() {
       <p><strong>画像からの推定</strong></p>
       <p>頭身：約${round(result.rawHeadRatio, 2)}頭身 → 入力候補：${result.headRatio}頭身</p>
       <p>股下比率：約${round(result.inseamRatio * 100, 1)}% → 脚の印象：${escapeHtml(getLegTypeLabel(result.legType))}</p>
+      <p>肩幅比率：約${round(result.shoulderRatio * 100, 1)}% → 肩幅の印象：${escapeHtml(getShoulderTypeLabel(result.shoulderType))}</p>
+      <p>ウエスト幅比率：約${round(result.waistRatio * 100, 1)}% → 胴まわりの印象：${escapeHtml(getWaistTypeLabel(result.waistType))}</p>
+      <p>肩幅÷ウエスト：約${round(result.shoulderWaistRatio, 2)} → シルエット：${escapeHtml(getSilhouetteTypeLabel(result.silhouetteType))}</p>
     </div>
   `;
 }
@@ -1031,7 +1137,7 @@ function applyImageAssistResult() {
   const result = posePointState.result || calculateImageAssist();
 
   if (!result) {
-    alert("先に画像上で、頭頂・あご・肩・股下・足先を指定してください。");
+    alert("先に画像上で、頭頂・あご・左右肩・左右ウエスト・股下・左右足先を指定してください。");
     return;
   }
 
@@ -1089,11 +1195,11 @@ function bindEvents() {
     console.warn("poseImageInput が見つかりません。index.html の input ID を確認してください。");
   }
 
-if (poseCanvas) {
-  poseCanvas.addEventListener("pointerdown", handlePoseCanvasClick);
-} else {
-  console.warn("poseCanvas が見つかりません。index.html の canvas ID を確認してください。");
-}
+  if (poseCanvas) {
+    poseCanvas.addEventListener("pointerdown", handlePoseCanvasClick);
+  } else {
+    console.warn("poseCanvas が見つかりません。index.html の canvas ID を確認してください。");
+  }
 
   if (resetPointsButton) {
     resetPointsButton.addEventListener("click", resetPosePointsOnly);
