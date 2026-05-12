@@ -150,14 +150,17 @@
     </div>
   </div>
 
-  <label class="field">
-    <span class="field-label">立ち絵画像</span>
-    <input id="poseImageInput" type="file" accept="image/*" />
-  </label>
+<label class="field">
+  <span class="field-label">立ち絵画像</span>
+  <input id="poseImageInput" type="file" accept="image/*" />
+</label>
 
   <div class="pose-tool">
-    <canvas id="poseCanvas"></canvas>
-  </div>
+  <canvas id="poseCanvas" class="pose-canvas"></canvas>
+  <p id="poseCanvasMessage" class="pose-message">
+    立ち絵画像を選択すると、ここに表示されます。
+  </p>
+</div>
 
   <div class="button-row">
     <button id="resetPointsButton" class="button secondary" type="button">ポイントをリセット</button>
