@@ -407,9 +407,9 @@ const detailRows = [
   }
 
   renderTable($("basicTable"), basicRows);
-renderTable($("handTable"), handRows);
-renderTable($("ringTable"), ringRows);
-renderTable($("footTable"), footRows);
+  renderTable($("handTable"), handRows);
+  renderTable($("ringTable"), ringRows);
+  renderTable($("footTable"), footRows);
   renderList($("memoList"), memos);
   renderList($("compareList"), compareMemos);
 
