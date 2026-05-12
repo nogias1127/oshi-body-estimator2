@@ -1,4 +1,13 @@
+/* =========================================================
+  0. DOM取得ショートカット
+========================================================= */
+
 const $ = (id) => document.getElementById(id);
+
+
+/* =========================================================
+  1. 状態管理
+========================================================= */
 
 const poseImageState = {
   image: null,
@@ -9,6 +18,39 @@ const poseImageState = {
   canvasHeight: 0,
   scale: 1
 };
+
+const posePoints = [
+  {
+    key: "top",
+    label: "頭頂"
+  },
+  {
+    key: "chin",
+    label: "あご"
+  },
+  {
+    key: "shoulder",
+    label: "肩"
+  },
+  {
+    key: "crotch",
+    label: "股下"
+  },
+  {
+    key: "foot",
+    label: "足先"
+  }
+];
+
+const posePointState = {
+  points: [],
+  result: null
+};
+
+
+/* =========================================================
+  2. 推定用プロフィール定義
+========================================================= */
 
 const frameProfiles = {
   adultMale: {
@@ -156,6 +198,11 @@ const legProfiles = {
   }
 };
 
+
+/* =========================================================
+  3. 汎用ユーティリティ
+========================================================= */
+
 function round(value, digits = 1) {
   return Number(value).toFixed(digits);
 }
@@ -183,6 +230,20 @@ function setValueIfExists(id, value) {
     element.value = value;
   }
 }
+
+function escapeHtml(value) {
+  return String(value)
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+}
+
+
+/* =========================================================
+  4. 身体推定メイン処理
+========================================================= */
 
 function estimate() {
   const name = $("oshiName").value.trim() || "あの人";
@@ -272,8 +333,6 @@ function estimate() {
   ];
 
   const memos = createMemos({
-    name,
-    height,
     frame,
     body,
     hand,
@@ -289,7 +348,6 @@ function estimate() {
   });
 
   const compareMemos = createCompareMemos({
-    name,
     height,
     handLength,
     shoeSize,
@@ -418,6 +476,11 @@ function estimateHugPosition(heightDiff) {
   return "あなたの方が少し高めで、相手の頭や肩を抱き込む描写に寄せやすいです。";
 }
 
+
+/* =========================================================
+  5. 結果表示・コピー・PNG保存
+========================================================= */
+
 function renderTable(target, rows) {
   if (!target) return;
 
@@ -545,6 +608,11 @@ async function saveResultAsPng() {
   }
 }
 
+
+/* =========================================================
+  6. フォームリセット
+========================================================= */
+
 function resetForm() {
   $("oshiName").value = "";
   $("height").value = "";
@@ -563,14 +631,10 @@ function resetForm() {
   $("copyButton").dataset.copyText = "";
 }
 
-function escapeHtml(value) {
-  return String(value)
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&#039;");
-}
+
+/* =========================================================
+  7. 立ち絵画像表示
+========================================================= */
 
 function setPoseMessage(text) {
   const message = $("poseCanvasMessage");
@@ -611,6 +675,9 @@ function resetPoseImage() {
   poseImageState.canvasHeight = 0;
   poseImageState.scale = 1;
 
+  posePointState.points = [];
+  posePointState.result = null;
+
   clearPoseCanvas();
 
   if (poseImageInput) {
@@ -619,6 +686,11 @@ function resetPoseImage() {
 
   if (poseTool) {
     poseTool.classList.remove("is-loaded");
+  }
+
+  const resultBox = $("imageAssistResult");
+  if (resultBox) {
+    resultBox.innerHTML = "";
   }
 
   setPoseMessage("立ち絵画像を選択すると、ここに表示されます。");
@@ -690,7 +762,17 @@ function handlePoseImageUpload(event) {
   image.onload = () => {
     poseImageState.image = image;
     poseImageState.objectUrl = objectUrl;
+
+    posePointState.points = [];
+    posePointState.result = null;
+
     drawPoseImageToCanvas();
+    setPoseMessage("頭頂をクリックしてください。");
+
+    const resultBox = $("imageAssistResult");
+    if (resultBox) {
+      resultBox.innerHTML = "";
+    }
   };
 
   image.onerror = () => {
@@ -702,13 +784,273 @@ function handlePoseImageUpload(event) {
   image.src = objectUrl;
 }
 
+
+/* =========================================================
+  8. 立ち絵画像クリック補助推定
+========================================================= */
+
+function getNextPosePoint() {
+  return posePoints[posePointState.points.length] || null;
+}
+
+function getCanvasPoint(event, canvas) {
+  const rect = canvas.getBoundingClientRect();
+
+  const scaleX = canvas.width / rect.width;
+  const scaleY = canvas.height / rect.height;
+
+  return {
+    x: (event.clientX - rect.left) * scaleX,
+    y: (event.clientY - rect.top) * scaleY
+  };
+}
+
+function drawPoseOverlay() {
+  drawPoseImageToCanvas();
+
+  const canvas = $("poseCanvas");
+  const ctx = canvas?.getContext("2d");
+
+  if (!canvas || !ctx || !poseImageState.image) return;
+
+  posePointState.points.forEach((point, index) => {
+    ctx.beginPath();
+    ctx.arc(point.x, point.y, 6, 0, Math.PI * 2);
+    ctx.fillStyle = "#7b4b35";
+    ctx.fill();
+
+    ctx.beginPath();
+    ctx.arc(point.x, point.y, 10, 0, Math.PI * 2);
+    ctx.strokeStyle = "#ffffff";
+    ctx.lineWidth = 3;
+    ctx.stroke();
+
+    ctx.font = "bold 13px sans-serif";
+    ctx.fillStyle = "#2f2924";
+    ctx.strokeStyle = "#ffffff";
+    ctx.lineWidth = 4;
+
+    const text = `${index + 1}. ${point.label}`;
+    ctx.strokeText(text, point.x + 12, point.y - 10);
+    ctx.fillText(text, point.x + 12, point.y - 10);
+  });
+
+  if (posePointState.points.length >= 2) {
+    ctx.beginPath();
+    ctx.strokeStyle = "rgba(123, 75, 53, 0.65)";
+    ctx.lineWidth = 2;
+
+    posePointState.points.forEach((point, index) => {
+      if (index === 0) {
+        ctx.moveTo(point.x, point.y);
+      } else {
+        ctx.lineTo(point.x, point.y);
+      }
+    });
+
+    ctx.stroke();
+  }
+}
+
+function handlePoseCanvasClick(event) {
+  const canvas = $("poseCanvas");
+
+  if (!canvas || !poseImageState.image) {
+    return;
+  }
+
+  const nextPoint = getNextPosePoint();
+
+  if (!nextPoint) {
+    alert("すべてのポイントを指定済みです。リセットする場合は「ポイントをリセット」を押してください。");
+    return;
+  }
+
+  const point = getCanvasPoint(event, canvas);
+
+  posePointState.points.push({
+    key: nextPoint.key,
+    label: nextPoint.label,
+    x: point.x,
+    y: point.y
+  });
+
+  drawPoseOverlay();
+  updateImageAssistResult();
+
+  const afterNextPoint = getNextPosePoint();
+
+  if (afterNextPoint) {
+    setPoseMessage(`次は「${afterNextPoint.label}」をクリックしてください。`);
+  } else {
+    setPoseMessage("ポイント指定が完了しました。必要なら入力欄に反映できます。");
+  }
+}
+
+function getPosePoint(key) {
+  return posePointState.points.find((point) => point.key === key);
+}
+
+function calculateImageAssist() {
+  const top = getPosePoint("top");
+  const chin = getPosePoint("chin");
+  const crotch = getPosePoint("crotch");
+  const foot = getPosePoint("foot");
+
+  if (!top || !chin || !crotch || !foot) {
+    return null;
+  }
+
+  const headPx = Math.abs(chin.y - top.y);
+  const bodyPx = Math.abs(foot.y - top.y);
+  const inseamPx = Math.abs(foot.y - crotch.y);
+
+  if (headPx <= 0 || bodyPx <= 0 || inseamPx <= 0) {
+    return null;
+  }
+
+  const rawHeadRatio = bodyPx / headPx;
+  const inseamRatio = inseamPx / bodyPx;
+
+  const headRatio = normalizeHeadRatio(rawHeadRatio);
+  const legType = inferLegType(inseamRatio);
+
+  return {
+    rawHeadRatio,
+    headRatio,
+    inseamRatio,
+    legType
+  };
+}
+
+function normalizeHeadRatio(value) {
+  const candidates = [6.5, 7, 7.5, 8, 8.5, 9];
+
+  return candidates.reduce((nearest, current) => {
+    return Math.abs(current - value) < Math.abs(nearest - value)
+      ? current
+      : nearest;
+  }, candidates[0]);
+}
+
+function inferLegType(inseamRatio) {
+  if (inseamRatio < 0.43) {
+    return "short";
+  }
+
+  if (inseamRatio < 0.465) {
+    return "normal";
+  }
+
+  if (inseamRatio < 0.49) {
+    return "long";
+  }
+
+  return "veryLong";
+}
+
+function getLegTypeLabel(value) {
+  const labels = {
+    short: "短め",
+    normal: "標準",
+    long: "長め",
+    veryLong: "かなり長め"
+  };
+
+  return labels[value] || "標準";
+}
+
+function updateImageAssistResult() {
+  const resultBox = $("imageAssistResult");
+  if (!resultBox) return;
+
+  const nextPoint = getNextPosePoint();
+
+  if (nextPoint) {
+    resultBox.innerHTML = `
+      <p class="assist-result__text">
+        次にクリックする点：<strong>${escapeHtml(nextPoint.label)}</strong>
+      </p>
+    `;
+    return;
+  }
+
+  const result = calculateImageAssist();
+  posePointState.result = result;
+
+  if (!result) {
+    resultBox.innerHTML = `
+      <p class="assist-result__text">
+        ポイントの取得に失敗しました。もう一度リセットして指定してください。
+      </p>
+    `;
+    return;
+  }
+
+  resultBox.innerHTML = `
+    <div class="assist-result__box">
+      <p><strong>画像からの推定</strong></p>
+      <p>頭身：約${round(result.rawHeadRatio, 2)}頭身 → 入力候補：${result.headRatio}頭身</p>
+      <p>股下比率：約${round(result.inseamRatio * 100, 1)}% → 脚の印象：${escapeHtml(getLegTypeLabel(result.legType))}</p>
+    </div>
+  `;
+}
+
+function resetPosePointsOnly() {
+  posePointState.points = [];
+  posePointState.result = null;
+
+  if (poseImageState.image) {
+    drawPoseImageToCanvas();
+    setPoseMessage("頭頂をクリックしてください。");
+  } else {
+    clearPoseCanvas();
+    setPoseMessage("立ち絵画像を選択すると、ここに表示されます。");
+  }
+
+  const resultBox = $("imageAssistResult");
+  if (resultBox) {
+    resultBox.innerHTML = "";
+  }
+}
+
+function applyImageAssistResult() {
+  const result = posePointState.result || calculateImageAssist();
+
+  if (!result) {
+    alert("先に画像上で、頭頂・あご・肩・股下・足先を指定してください。");
+    return;
+  }
+
+  setValueIfExists("headRatio", String(result.headRatio));
+  setValueIfExists("legType", result.legType);
+
+  const resultBox = $("imageAssistResult");
+
+  if (resultBox) {
+    resultBox.innerHTML += `
+      <p class="assist-result__applied">
+        入力欄に反映しました。
+      </p>
+    `;
+  }
+}
+
+
+/* =========================================================
+  9. イベント登録
+========================================================= */
+
 function bindEvents() {
   const estimateButton = $("estimateButton");
   const resetButton = $("resetButton");
   const copyButton = $("copyButton");
   const savePngButton = $("savePngButton");
+
   const poseImageInput = $("poseImageInput");
+  const poseCanvas = $("poseCanvas");
   const resetPointsButton = $("resetPointsButton");
+  const applyImageAssistButton = $("applyImageAssistButton");
 
   if (estimateButton) {
     estimateButton.addEventListener("click", estimate);
@@ -734,11 +1076,28 @@ function bindEvents() {
     console.warn("poseImageInput が見つかりません。index.html の input ID を確認してください。");
   }
 
+  if (poseCanvas) {
+    poseCanvas.addEventListener("click", handlePoseCanvasClick);
+  } else {
+    console.warn("poseCanvas が見つかりません。index.html の canvas ID を確認してください。");
+  }
+
   if (resetPointsButton) {
-    resetPointsButton.addEventListener("click", resetPoseImage);
+    resetPointsButton.addEventListener("click", resetPosePointsOnly);
   } else {
     console.warn("resetPointsButton が見つかりません。index.html のボタンIDを確認してください。");
   }
+
+  if (applyImageAssistButton) {
+    applyImageAssistButton.addEventListener("click", applyImageAssistResult);
+  } else {
+    console.warn("applyImageAssistButton が見つかりません。index.html のボタンIDを確認してください。");
+  }
 }
+
+
+/* =========================================================
+  10. 初期化
+========================================================= */
 
 bindEvents();
