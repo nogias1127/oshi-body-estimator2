@@ -1002,3 +1002,41 @@ td {
   font-size: 0.92rem;
   text-align: center;
 }
+
+.assist-result {
+  margin-top: 14px;
+}
+
+.assist-result__text,
+.assist-result__box,
+.assist-result__applied {
+  margin: 0;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--surface-soft);
+  color: var(--text-sub);
+  font-size: 13px;
+  line-height: 1.7;
+}
+
+.assist-result__box {
+  display: grid;
+  gap: 4px;
+}
+
+.assist-result__box p {
+  margin: 0;
+}
+
+.assist-result__applied {
+  margin-top: 10px;
+  color: var(--primary);
+  font-weight: 800;
+  background: var(--primary-soft);
+  border-color: rgba(123, 75, 53, 0.25);
+}
+
+.pose-canvas {
+  cursor: crosshair;
+}
