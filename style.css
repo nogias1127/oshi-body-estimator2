@@ -1072,3 +1072,56 @@ td {
   margin-top: 12px;
   max-width: none;
 }
+
+.mini-result-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.mini-result-box {
+  min-width: 0;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--surface-soft);
+}
+
+.mini-result-box h4 {
+  margin: 0 0 10px;
+  color: var(--text-main);
+  font-size: 0.95rem;
+  letter-spacing: 0.04em;
+}
+
+.mini-result-box table {
+  width: 100%;
+}
+
+.mini-result-box td {
+  padding: 9px 0;
+  vertical-align: top;
+  line-height: 1.6;
+}
+
+.mini-result-box td:first-child {
+  width: 6em;
+  color: var(--text-sub);
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.mini-result-box td:last-child {
+  text-align: right;
+  font-weight: 800;
+}
+
+@media (max-width: 900px) {
+  .mini-result-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .mini-result-box td:last-child {
+    text-align: left;
+  }
+}
