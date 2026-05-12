@@ -1076,11 +1076,12 @@ function bindEvents() {
     console.warn("poseImageInput が見つかりません。index.html の input ID を確認してください。");
   }
 
-  if (poseCanvas) {
-    poseCanvas.addEventListener("click", handlePoseCanvasClick);
-  } else {
-    console.warn("poseCanvas が見つかりません。index.html の canvas ID を確認してください。");
-  }
+if (poseCanvas) {
+  poseCanvas.addEventListener("pointerdown", handlePoseCanvasClick);
+  poseCanvas.addEventListener("click", handlePoseCanvasClick);
+} else {
+  console.warn("poseCanvas が見つかりません。index.html の canvas ID を確認してください。");
+}
 
   if (resetPointsButton) {
     resetPointsButton.addEventListener("click", resetPosePointsOnly);
