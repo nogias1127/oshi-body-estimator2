@@ -862,15 +862,17 @@ function drawNextPoseGuide(ctx, canvas) {
 }
 
 function drawGuideBadge(ctx, canvas, title, detail) {
-  const x = 16;
-  const y = 16;
-  const width = Math.min(360, canvas.width - 32);
+  const padding = 14;
+  const width = Math.min(420, canvas.width - 32);
   const height = detail ? 74 : 48;
   const radius = 12;
 
+  const x = (canvas.width - width) / 2;
+  const y = canvas.height - height - 16;
+
   ctx.save();
 
-  ctx.globalAlpha = 0.92;
+  ctx.globalAlpha = 0.88;
   ctx.fillStyle = "#2f2924";
   roundRect(ctx, x, y, width, height, radius);
   ctx.fill();
@@ -878,11 +880,11 @@ function drawGuideBadge(ctx, canvas, title, detail) {
   ctx.globalAlpha = 1;
   ctx.fillStyle = "#ffffff";
   ctx.font = "bold 15px sans-serif";
-  ctx.fillText(title, x + 14, y + 28);
+  ctx.fillText(title, x + padding, y + 28);
 
   if (detail) {
     ctx.font = "12px sans-serif";
-    ctx.fillText(detail, x + 14, y + 52);
+    ctx.fillText(detail, x + padding, y + 52);
   }
 
   ctx.restore();
