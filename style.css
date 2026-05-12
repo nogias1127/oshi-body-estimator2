@@ -530,8 +530,28 @@ button.secondary:focus-visible {
 
 .result-layout {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: 1fr;
   gap: 18px;
+}
+
+.result-card table {
+  width: 100%;
+  table-layout: auto;
+}
+
+.result-card td {
+  vertical-align: top;
+  line-height: 1.75;
+}
+
+.result-card td:first-child {
+  width: 11em;
+  white-space: nowrap;
+}
+
+.result-card td:last-child {
+  word-break: normal;
+  overflow-wrap: anywhere;
 }
 
 .result-card {
@@ -567,6 +587,13 @@ button.secondary:focus-visible {
   color: var(--primary);
   font-size: 12px;
   font-weight: 800;
+}
+
+@media (max-width: 720px) {
+  .result-card td:first-child {
+    width: 8em;
+    white-space: normal;
+  }
 }
 
 /* Table / List */
