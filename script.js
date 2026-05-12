@@ -1,5 +1,15 @@
 const $ = (id) => document.getElementById(id);
 
+const poseImageState = {
+  image: null,
+  objectUrl: null,
+  naturalWidth: 0,
+  naturalHeight: 0,
+  canvasWidth: 0,
+  canvasHeight: 0,
+  scale: 1
+};
+
 const frameProfiles = {
   adultMale: {
     label: "成人男性寄り",
@@ -588,3 +598,116 @@ function bindEvents() {
 }
 
 document.addEventListener("DOMContentLoaded", bindEvents);
+
+function handlePoseImageUpload(event) {
+  const file = event.target.files?.[0];
+  const canvas = $("poseCanvas");
+  const message = $("poseCanvasMessage");
+  const poseTool = canvas?.closest(".pose-tool");
+
+  if (!file || !canvas) {
+    return;
+  }
+
+  if (!file.type.startsWith("image/")) {
+    alert("画像ファイルを選択してください。");
+    event.target.value = "";
+    return;
+  }
+
+  if (poseImageState.objectUrl) {
+    URL.revokeObjectURL(poseImageState.objectUrl);
+  }
+
+  const objectUrl = URL.createObjectURL(file);
+  const image = new Image();
+
+  image.onload = () => {
+    poseImageState.image = image;
+    poseImageState.objectUrl = objectUrl;
+    poseImageState.naturalWidth = image.naturalWidth;
+    poseImageState.naturalHeight = image.naturalHeight;
+
+    drawPoseImage();
+
+    if (poseTool) {
+      poseTool.classList.add("is-loaded");
+    }
+
+    if (message) {
+      message.textContent = "";
+    }
+  };
+
+  image.onerror = () => {
+    alert("画像の読み込みに失敗しました。別の画像でお試しください。");
+    URL.revokeObjectURL(objectUrl);
+    event.target.value = "";
+  };
+
+  image.src = objectUrl;
+}
+
+function drawPoseImage() {
+  const canvas = $("poseCanvas");
+  const image = poseImageState.image;
+
+  if (!canvas || !image) {
+    return;
+  }
+
+  const ctx = canvas.getContext("2d");
+  const maxWidth = Math.min(820, canvas.parentElement.clientWidth - 36);
+  const scale = Math.min(1, maxWidth / image.naturalWidth);
+
+  const canvasWidth = Math.round(image.naturalWidth * scale);
+  const canvasHeight = Math.round(image.naturalHeight * scale);
+
+  canvas.width = canvasWidth;
+  canvas.height = canvasHeight;
+
+  poseImageState.canvasWidth = canvasWidth;
+  poseImageState.canvasHeight = canvasHeight;
+  poseImageState.scale = scale;
+
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.drawImage(image, 0, 0, canvasWidth, canvasHeight);
+}
+
+function resetPoseImage() {
+  const input = $("poseImageInput");
+  const canvas = $("poseCanvas");
+  const message = $("poseCanvasMessage");
+  const poseTool = canvas?.closest(".pose-tool");
+
+  if (poseImageState.objectUrl) {
+    URL.revokeObjectURL(poseImageState.objectUrl);
+  }
+
+  poseImageState.image = null;
+  poseImageState.objectUrl = null;
+  poseImageState.naturalWidth = 0;
+  poseImageState.naturalHeight = 0;
+  poseImageState.canvasWidth = 0;
+  poseImageState.canvasHeight = 0;
+  poseImageState.scale = 1;
+
+  if (input) {
+    input.value = "";
+  }
+
+  if (canvas) {
+    const ctx = canvas.getContext("2d");
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    canvas.width = 0;
+    canvas.height = 0;
+  }
+
+  if (poseTool) {
+    poseTool.classList.remove("is-loaded");
+  }
+
+  if (message) {
+    message.textContent = "立ち絵画像を選択すると、ここに表示されます。";
+  }
+}
