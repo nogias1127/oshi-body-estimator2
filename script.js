@@ -355,19 +355,31 @@ const basicRows = createBodyContourRows({
   imageResult
 });
 
-  const detailRows = createHandFootRows({
-    handLength,
-    handWidth,
-    middleFinger,
-    wrist,
-    upperArm,
-    thigh,
-    calf,
-    footLength,
-    footWidth,
-    shoeSize,
-    ringSizes
-  });
+const handRows = createHandRows({
+  handLength,
+  handWidth,
+  middleFinger,
+  wrist,
+  upperArm
+});
+
+const ringRows = createRingRows({
+  ringSizes
+});
+
+const footRows = createFootRows({
+  thigh,
+  calf,
+  footLength,
+  footWidth,
+  shoeSize
+});
+
+const detailRows = [
+  ...handRows,
+  ...ringRows,
+  ...footRows
+];
 
   const memos = createImageEvidenceMemos({
     imageResult,
@@ -395,7 +407,9 @@ const basicRows = createBodyContourRows({
   }
 
   renderTable($("basicTable"), basicRows);
-  renderTable($("detailTable"), detailRows);
+renderTable($("handTable"), handRows);
+renderTable($("ringTable"), ringRows);
+renderTable($("footTable"), footRows);
   renderList($("memoList"), memos);
   renderList($("compareList"), compareMemos);
 
@@ -448,23 +462,33 @@ function createBodyContourRows(data) {
   ];
 }
 
-function createHandFootRows(data) {
+function createHandRows(data) {
   return [
     ["手の長さ", `${round(data.handLength)}cm前後`],
     ["手幅", `${round(data.handWidth)}cm前後`],
-    ["中指の長さ", `${round(data.middleFinger)}cm前後`],
-    ["手首周り", `${round(data.wrist)}cm前後`],
-    ["上腕周り", `${round(data.upperArm)}cm前後`],
-    ["太もも周り", `${round(data.thigh)}cm前後`],
-    ["ふくらはぎ", `${round(data.calf)}cm前後`],
+    ["中指", `${round(data.middleFinger)}cm前後`],
+    ["手首", `${round(data.wrist)}cm前後`],
+    ["上腕", `${round(data.upperArm)}cm前後`]
+  ];
+}
+
+function createRingRows(data) {
+  return [
     ["親指", `${data.ringSizes.thumb}号相当`],
     ["人差指", `${data.ringSizes.index}号相当`],
     ["中指", `${data.ringSizes.middle}号相当`],
     ["薬指", `${data.ringSizes.ring}号相当`],
-    ["小指", `${data.ringSizes.little}号相当`],
+    ["小指", `${data.ringSizes.little}号相当`]
+  ];
+}
+
+function createFootRows(data) {
+  return [
+    ["太もも", `${round(data.thigh)}cm前後`],
+    ["ふくらはぎ", `${round(data.calf)}cm前後`],
     ["足長", `${round(data.footLength)}cm前後`],
     ["足幅", `${round(data.footWidth)}cm前後`],
-    ["靴サイズ目安", `${round(data.shoeSize, 1)}cm前後`]
+    ["靴サイズ", `${round(data.shoeSize, 1)}cm前後`]
   ];
 }
 
