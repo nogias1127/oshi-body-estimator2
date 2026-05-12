@@ -1125,3 +1125,15 @@ td {
     text-align: left;
   }
 }
+
+.mini-result-box td:first-child {
+  width: 4.5em;
+  white-space: nowrap;
+}
+
+.mini-result-box td:last-child {
+  white-space: nowrap;
+  word-break: keep-all;
+  overflow-wrap: normal;
+  text-align: right;
+}
