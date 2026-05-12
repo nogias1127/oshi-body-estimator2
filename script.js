@@ -577,6 +577,8 @@ function bindEvents() {
   const resetButton = $("resetButton");
   const copyButton = $("copyButton");
   const savePngButton = $("savePngButton");
+  const poseImageInput = $("poseImageInput");
+  const resetPointsButton = $("resetPointsButton");
 
   if (estimateButton) {
     estimateButton.addEventListener("click", estimate);
@@ -595,140 +597,16 @@ function bindEvents() {
   } else {
     console.warn("savePngButton が見つかりません。index.html のボタンIDを確認してください。");
   }
-}
 
-document.addEventListener("DOMContentLoaded", bindEvents);
-
-function handlePoseImageUpload(event) {
-  const file = event.target.files && event.target.files[0];
-  const canvas = $("poseCanvas");
-  const message = $("poseCanvasMessage");
-  const poseTool = canvas ? canvas.closest(".pose-tool") : null;
-
-  if (!file) {
-    return;
+  if (poseImageInput) {
+    poseImageInput.addEventListener("change", handlePoseImageUpload);
+  } else {
+    console.warn("poseImageInput が見つかりません。index.html の input ID を確認してください。");
   }
 
-  if (!canvas) {
-    alert("画像表示用のcanvasが見つかりません。index.html の poseCanvas を確認してください。");
-    return;
-  }
-
-  if (!file.type.startsWith("image/")) {
-    alert("画像ファイルを選択してください。");
-    event.target.value = "";
-    return;
-  }
-
-  if (poseImageState.objectUrl) {
-    URL.revokeObjectURL(poseImageState.objectUrl);
-  }
-
-  const objectUrl = URL.createObjectURL(file);
-  const image = new Image();
-
-  image.onload = () => {
-    poseImageState.image = image;
-    poseImageState.objectUrl = objectUrl;
-    poseImageState.naturalWidth = image.naturalWidth;
-    poseImageState.naturalHeight = image.naturalHeight;
-
-    drawPoseImage();
-
-    if (poseTool) {
-      poseTool.classList.add("is-loaded");
-    }
-
-    if (message) {
-      message.textContent = "";
-    }
-
-    console.log("立ち絵画像を読み込みました", {
-      width: image.naturalWidth,
-      height: image.naturalHeight
-    });
-  };
-
-  image.onerror = () => {
-    alert("画像の読み込みに失敗しました。別の画像でお試しください。");
-    URL.revokeObjectURL(objectUrl);
-    event.target.value = "";
-  };
-
-  image.src = objectUrl;
-}
-
-function drawPoseImage() {
-  const canvas = $("poseCanvas");
-  const image = poseImageState.image;
-
-  if (!canvas || !image) {
-    return;
-  }
-
-  const ctx = canvas.getContext("2d");
-  const wrapper = canvas.closest(".pose-tool");
-
-  const wrapperWidth = wrapper
-    ? wrapper.clientWidth
-    : 820;
-
-  const maxWidth = Math.max(240, Math.min(820, wrapperWidth - 36));
-  const scale = Math.min(1, maxWidth / image.naturalWidth);
-
-  const canvasWidth = Math.round(image.naturalWidth * scale);
-  const canvasHeight = Math.round(image.naturalHeight * scale);
-
-  canvas.width = canvasWidth;
-  canvas.height = canvasHeight;
-
-  canvas.style.width = `${canvasWidth}px`;
-  canvas.style.height = `${canvasHeight}px`;
-
-  poseImageState.canvasWidth = canvasWidth;
-  poseImageState.canvasHeight = canvasHeight;
-  poseImageState.scale = scale;
-
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
-  ctx.drawImage(image, 0, 0, canvasWidth, canvasHeight);
-}
-
-function resetPoseImage() {
-  const input = $("poseImageInput");
-  const canvas = $("poseCanvas");
-  const message = $("poseCanvasMessage");
-  const poseTool = canvas ? canvas.closest(".pose-tool") : null;
-
-  if (poseImageState.objectUrl) {
-    URL.revokeObjectURL(poseImageState.objectUrl);
-  }
-
-  poseImageState.image = null;
-  poseImageState.objectUrl = null;
-  poseImageState.naturalWidth = 0;
-  poseImageState.naturalHeight = 0;
-  poseImageState.canvasWidth = 0;
-  poseImageState.canvasHeight = 0;
-  poseImageState.scale = 1;
-
-  if (input) {
-    input.value = "";
-  }
-
-  if (canvas) {
-    const ctx = canvas.getContext("2d");
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    canvas.width = 0;
-    canvas.height = 0;
-    canvas.style.width = "";
-    canvas.style.height = "";
-  }
-
-  if (poseTool) {
-    poseTool.classList.remove("is-loaded");
-  }
-
-  if (message) {
-    message.textContent = "立ち絵画像を選択すると、ここに表示されます。";
+  if (resetPointsButton) {
+    resetPointsButton.addEventListener("click", resetPoseImage);
+  } else {
+    console.warn("resetPointsButton が見つかりません。index.html のボタンIDを確認してください。");
   }
 }
