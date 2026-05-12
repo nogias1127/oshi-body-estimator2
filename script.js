@@ -755,8 +755,8 @@ function handlePoseImageUpload(event) {
     posePointState.points = [];
     posePointState.result = null;
 
-    drawPoseImageToCanvas();
-    setPoseMessage("頭頂をクリックしてください。");
+drawPoseOverlay();
+setPoseMessage("頭頂をクリックしてください。");
 
     const resultBox = $("imageAssistResult");
     if (resultBox) {
@@ -839,6 +839,85 @@ function drawPoseOverlay() {
 
     ctx.stroke();
   }
+
+  drawNextPoseGuide(ctx, canvas);
+}
+function drawNextPoseGuide(ctx, canvas) {
+  const nextPoint = getNextPosePoint();
+
+  if (!nextPoint) {
+    drawGuideBadge(ctx, canvas, "ポイント指定完了", "入力欄に反映できます");
+    return;
+  }
+
+  const currentNumber = posePointState.points.length + 1;
+  const totalNumber = posePoints.length;
+
+  drawGuideBadge(
+    ctx,
+    canvas,
+    `次は ${currentNumber}/${totalNumber}：${nextPoint.label}`,
+    getPosePointGuideText(nextPoint.key)
+  );
+}
+
+function drawGuideBadge(ctx, canvas, title, detail) {
+  const x = 16;
+  const y = 16;
+  const width = Math.min(360, canvas.width - 32);
+  const height = detail ? 74 : 48;
+  const radius = 12;
+
+  ctx.save();
+
+  ctx.globalAlpha = 0.92;
+  ctx.fillStyle = "#2f2924";
+  roundRect(ctx, x, y, width, height, radius);
+  ctx.fill();
+
+  ctx.globalAlpha = 1;
+  ctx.fillStyle = "#ffffff";
+  ctx.font = "bold 15px sans-serif";
+  ctx.fillText(title, x + 14, y + 28);
+
+  if (detail) {
+    ctx.font = "12px sans-serif";
+    ctx.fillText(detail, x + 14, y + 52);
+  }
+
+  ctx.restore();
+}
+
+function roundRect(ctx, x, y, width, height, radius) {
+  const r = Math.min(radius, width / 2, height / 2);
+
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.lineTo(x + width - r, y);
+  ctx.quadraticCurveTo(x + width, y, x + width, y + r);
+  ctx.lineTo(x + width, y + height - r);
+  ctx.quadraticCurveTo(x + width, y + height, x + width - r, y + height);
+  ctx.lineTo(x + r, y + height);
+  ctx.quadraticCurveTo(x, y + height, x, y + height - r);
+  ctx.lineTo(x, y + r);
+  ctx.quadraticCurveTo(x, y, x + r, y);
+  ctx.closePath();
+}
+
+function getPosePointGuideText(key) {
+  const guides = {
+    top: "髪や頭部本体の一番上",
+    chin: "顔の輪郭の一番下",
+    leftShoulder: "画面左側の肩の外端",
+    rightShoulder: "画面右側の肩の外端",
+    leftWaist: "画面左側の胴が細く見える位置",
+    rightWaist: "画面右側の胴が細く見える位置",
+    crotch: "脚が左右に分かれ始める位置",
+    leftFoot: "画面左側の靴底・足先の一番下",
+    rightFoot: "画面右側の靴底・足先の一番下"
+  };
+
+  return guides[key] || "該当する位置をクリック";
 }
 
 let lastPoseClickTime = 0;
@@ -1120,8 +1199,8 @@ function resetPosePointsOnly() {
   posePointState.result = null;
 
   if (poseImageState.image) {
-    drawPoseImageToCanvas();
-    setPoseMessage("頭頂をクリックしてください。");
+drawPoseOverlay();
+setPoseMessage("頭頂をクリックしてください。");
   } else {
     clearPoseCanvas();
     setPoseMessage("立ち絵画像を選択すると、ここに表示されます。");
