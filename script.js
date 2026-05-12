@@ -600,12 +600,17 @@ function bindEvents() {
 document.addEventListener("DOMContentLoaded", bindEvents);
 
 function handlePoseImageUpload(event) {
-  const file = event.target.files?.[0];
+  const file = event.target.files && event.target.files[0];
   const canvas = $("poseCanvas");
   const message = $("poseCanvasMessage");
-  const poseTool = canvas?.closest(".pose-tool");
+  const poseTool = canvas ? canvas.closest(".pose-tool") : null;
 
-  if (!file || !canvas) {
+  if (!file) {
+    return;
+  }
+
+  if (!canvas) {
+    alert("画像表示用のcanvasが見つかりません。index.html の poseCanvas を確認してください。");
     return;
   }
 
@@ -637,6 +642,11 @@ function handlePoseImageUpload(event) {
     if (message) {
       message.textContent = "";
     }
+
+    console.log("立ち絵画像を読み込みました", {
+      width: image.naturalWidth,
+      height: image.naturalHeight
+    });
   };
 
   image.onerror = () => {
@@ -657,7 +667,13 @@ function drawPoseImage() {
   }
 
   const ctx = canvas.getContext("2d");
-  const maxWidth = Math.min(820, canvas.parentElement.clientWidth - 36);
+  const wrapper = canvas.closest(".pose-tool");
+
+  const wrapperWidth = wrapper
+    ? wrapper.clientWidth
+    : 820;
+
+  const maxWidth = Math.max(240, Math.min(820, wrapperWidth - 36));
   const scale = Math.min(1, maxWidth / image.naturalWidth);
 
   const canvasWidth = Math.round(image.naturalWidth * scale);
@@ -665,6 +681,9 @@ function drawPoseImage() {
 
   canvas.width = canvasWidth;
   canvas.height = canvasHeight;
+
+  canvas.style.width = `${canvasWidth}px`;
+  canvas.style.height = `${canvasHeight}px`;
 
   poseImageState.canvasWidth = canvasWidth;
   poseImageState.canvasHeight = canvasHeight;
@@ -678,7 +697,7 @@ function resetPoseImage() {
   const input = $("poseImageInput");
   const canvas = $("poseCanvas");
   const message = $("poseCanvasMessage");
-  const poseTool = canvas?.closest(".pose-tool");
+  const poseTool = canvas ? canvas.closest(".pose-tool") : null;
 
   if (poseImageState.objectUrl) {
     URL.revokeObjectURL(poseImageState.objectUrl);
@@ -701,6 +720,8 @@ function resetPoseImage() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     canvas.width = 0;
     canvas.height = 0;
+    canvas.style.width = "";
+    canvas.style.height = "";
   }
 
   if (poseTool) {
