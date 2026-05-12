@@ -2,9 +2,9 @@
   推し身体推定メーカー - script.js
   ---------------------------------------------------------
   画像必須版：
-  1. 入力欄は「名前・身長・手の印象」を基本にする
-  2. 頭身・脚長・肩幅・体格傾向は立ち絵画像の9点指定から補助推定する
-  3. 結果を画面表示・コピー・PNG保存する
+  1. 入力欄は「名前・身長・手の印象」
+  2. 頭身・脚長・肩幅・体格傾向は立ち絵画像の9点指定から補助推定
+  3. 結果は「身体の輪郭」「手・指・足元」「あなたとの距離感」「画像補正の根拠」に分けて表示
 ========================================================= */
 
 /* =========================================================
@@ -330,57 +330,56 @@ function estimate() {
 
   const ringCircMm = handLength * 10 * 0.31;
   const ringSize = ringCircMm - 40;
-  const ringMin = Math.max(1, ringSize - 1.5);
-  const ringMax = ringSize + 1.5;
 
-  const basicRows = [
-    ["身体ベース", frame.label],
-    ["体格タイプ", body.label],
-    ["身長", `${round(height)}cm`],
-    ["推定体重", rangeText(minWeight, maxWeight, "kg")],
-    ["頭の高さ", `${round(headHeight)}cm`],
-    ["首周り", `${round(neck)}cm前後`],
-    ["肩幅", `${round(shoulder)}cm前後`],
-    ["胸囲", rangeText(chest * 0.97, chest * 1.03)],
-    ["ウエスト", rangeText(waist * 0.97, waist * 1.03)],
-    ["ヒップ", rangeText(hip * 0.97, hip * 1.03)],
-    ["背丈・胴まわり", `${round(torso)}cm前後`],
-    ["股下", `${round(inseam)}cm前後`],
-    ["腕の長さ", `${round(arm)}cm前後`],
-    ["裄丈の目安", `${round(sleeve)}cm前後`]
-  ];
+  const imageResult = posePointState.result || calculateImageAssist();
+  const ringSizes = createRingSizeMap(ringSize);
 
-  const detailRows = [
-    ["手の長さ", `${round(handLength)}cm前後`],
-    ["手幅", `${round(handWidth)}cm前後`],
-    ["中指の長さ", `${round(middleFinger)}cm前後`],
-    ["手首周り", `${round(wrist)}cm前後`],
-    ["上腕周り", `${round(upperArm)}cm前後`],
-    ["太もも周り", `${round(thigh)}cm前後`],
-    ["ふくらはぎ", `${round(calf)}cm前後`],
-    ["足長", `${round(footLength)}cm前後`],
-    ["足幅", `${round(footWidth)}cm前後`],
-    ["靴サイズ目安", `${round(shoeSize, 1)}cm前後`],
-    ["指輪サイズ目安", `${Math.round(ringMin)}〜${Math.round(ringMax)}号相当`]
-  ];
-
-  const memos = createMemos({
+  const basicRows = createBodyContourRows({
     frame,
     body,
     hand,
     leg,
+    height,
+    minWeight,
+    maxWeight,
+    headHeight,
+    neck,
     shoulder,
     chest,
     waist,
+    hip,
+    torso,
     inseam,
-    handLength,
-    shoeSize,
-    ringMin,
-    ringMax
+    arm,
+    sleeve
   });
 
-  const compareMemos = createCompareMemos({
+  const detailRows = createHandFootRows({
+    handLength,
+    handWidth,
+    middleFinger,
+    wrist,
+    upperArm,
+    thigh,
+    calf,
+    footLength,
+    footWidth,
+    shoeSize,
+    ringSizes
+  });
+
+  const memos = createImageEvidenceMemos({
+    imageResult,
+    frame,
+    body,
+    leg
+  });
+
+  const compareMemos = createDistanceMemos({
     height,
+    shoulder,
+    arm,
+    inseam,
     handLength,
     shoeSize,
     userHeight: Number($("userHeight")?.value),
@@ -389,6 +388,7 @@ function estimate() {
   });
 
   if ($("resultTitle")) $("resultTitle").textContent = `${name}の推定身体情報`;
+
   if ($("summaryText")) {
     $("summaryText").textContent = createSummary(name, frame, body, hand, leg, height, shoulder, handLength);
   }
@@ -419,35 +419,65 @@ function createSummary(name, frame, body, hand, leg, height, shoulder, handLengt
         ? "肩まわりはすっきりしていて"
         : "肩幅は自然で";
 
-  return `${name}は、画像補正から${frame.label}ベースの${body.label}寄り、${round(height)}cm想定です。${shoulderImpression}、${frame.comment}${body.comment}${hand.comment}${leg.comment} 手の長さは約${round(handLength)}cmで、触れた時のサイズ感を想像しやすい推定になっています。`;
+  return `${name}は、画像補正から${getBodyImpressionLabel(frame, body)}として推定しています。${round(height)}cm想定で、${shoulderImpression}、手の長さは約${round(handLength)}cm。手を重ねた時や隣に立った時のサイズ感を想像しやすい結果です。`;
 }
 
-function createMemos(data) {
-  const memos = [];
-
-  memos.push(`身体ベースは画像補正から「${data.frame.label}」として扱います。${data.frame.comment}`);
-  memos.push(`体格タイプは画像補正から「${data.body.label}」寄りとして扱います。${data.body.comment}`);
-  memos.push(`手の印象は手動入力の「${data.hand.label}」。手長は約${round(data.handLength)}cmで、手を重ねる描写や恋人繋ぎのサイズ感の目安になります。`);
-  memos.push(`脚の印象は画像補正から「${data.leg.label}」。股下は約${round(data.inseam)}cmで、立ち姿や歩幅のイメージ作りに使えます。`);
-
-  if (data.chest - data.waist > 16) {
-    memos.push("胸囲とウエストの差が出やすく、服越しにも上半身のラインがすっきり見えるタイプです。");
-  } else {
-    memos.push("胸囲とウエストの差は控えめで、自然体・生活感のあるシルエットに寄せやすいです。");
-  }
-
-  if (data.shoeSize >= 27) {
-    memos.push(`靴サイズは約${round(data.shoeSize)}cm。玄関に並べた時、足元の存在感がかなり出やすいです。`);
-  } else {
-    memos.push(`靴サイズは約${round(data.shoeSize)}cm。身長に対して自然な足元のサイズ感です。`);
-  }
-
-  memos.push(`指輪サイズは${Math.round(data.ringMin)}〜${Math.round(data.ringMax)}号相当の推定です。ペアリングや手元描写の目安にできます。`);
-
-  return memos;
+function createBodyContourRows(data) {
+  return [
+    ["身体の印象", getBodyImpressionLabel(data.frame, data.body)],
+    ["体格の輪郭", getBodyContourLabel(data.frame, data.body)],
+    ["身長", `${round(data.height)}cm`],
+    ["抱きしめた時の重み", `${rangeText(data.minWeight, data.maxWeight, "kg")}くらいの体重感`],
+    ["頭の大きさ", `${round(data.headHeight)}cm前後`],
+    ["首元の印象", `${round(data.neck)}cm前後 / ${getNeckImpression(data.neck, data.height)}`],
+    ["肩幅", `${round(data.shoulder)}cm前後 / ${getShoulderImpression(data.shoulder, data.height)}`],
+    ["胸まわり", `${rangeText(data.chest * 0.97, data.chest * 1.03)} / ${getChestImpression(data.chest, data.waist)}`],
+    ["腰まわり", `${rangeText(data.waist * 0.97, data.waist * 1.03)} / ${getWaistImpression(data.waist, data.height)}`],
+    ["ヒップライン", `${rangeText(data.hip * 0.97, data.hip * 1.03)}`],
+    ["上半身の長さ", `${round(data.torso)}cm前後`],
+    ["脚の長さ", `${round(data.inseam)}cm前後 / ${data.leg.label}`],
+    ["腕の長さ", `${round(data.arm)}cm前後`],
+    ["袖丈の目安", `${round(data.sleeve)}cm前後`]
+  ];
 }
 
-function createCompareMemos(data) {
+function createHandFootRows(data) {
+  return [
+    ["手の長さ", `${round(data.handLength)}cm前後`],
+    ["手幅", `${round(data.handWidth)}cm前後`],
+    ["中指の長さ", `${round(data.middleFinger)}cm前後`],
+    ["手首周り", `${round(data.wrist)}cm前後`],
+    ["上腕周り", `${round(data.upperArm)}cm前後`],
+    ["太もも周り", `${round(data.thigh)}cm前後`],
+    ["ふくらはぎ", `${round(data.calf)}cm前後`],
+    ["左手薬指", `${data.ringSizes.ring}号相当`],
+    ["親指リング", `${data.ringSizes.thumb}号相当`],
+    ["人差し指リング", `${data.ringSizes.index}号相当`],
+    ["中指リング", `${data.ringSizes.middle}号相当`],
+    ["小指リング", `${data.ringSizes.little}号相当`],
+    ["足長", `${round(data.footLength)}cm前後`],
+    ["足幅", `${round(data.footWidth)}cm前後`],
+    ["靴サイズ目安", `${round(data.shoeSize, 1)}cm前後`]
+  ];
+}
+
+function createRingSizeMap(baseRingSize) {
+  return {
+    thumb: ringRangeText(baseRingSize + 4),
+    index: ringRangeText(baseRingSize + 2),
+    middle: ringRangeText(baseRingSize + 3),
+    ring: ringRangeText(baseRingSize),
+    little: ringRangeText(baseRingSize - 7)
+  };
+}
+
+function ringRangeText(center) {
+  const min = Math.max(1, Math.round(center - 1.5));
+  const max = Math.max(min, Math.round(center + 1.5));
+  return `${min}〜${max}`;
+}
+
+function createDistanceMemos(data) {
   const memos = [];
 
   if (!data.userHeight && !data.userHand && !data.userShoe) {
@@ -458,60 +488,388 @@ function createCompareMemos(data) {
     const diff = data.height - data.userHeight;
     const abs = Math.abs(diff);
 
-    if (abs < 2) {
-      memos.push(`身長差は約${round(abs)}cm。ほぼ同じ目線で、並んだ時の距離感はかなり近めです。`);
-    } else if (diff > 0) {
-      memos.push(`身長差は約${round(abs)}cm。あなたが少し見上げる形になり、正面で向き合うと目線差が出ます。`);
+    memos.push(createHeightDistanceMemo(diff, abs));
+    memos.push(`目線の位置：${createEyeLineMemo(diff)}`);
+    memos.push(`ハグした時：${estimateHugPosition(diff)}`);
+    memos.push(`並んだ時のシルエット：${createStandingSilhouetteMemo(diff, data.shoulder)}`);
+
+    const userInseam = data.userHeight * 0.455;
+    const strideDiff = data.inseam * 0.48 - userInseam * 0.48;
+
+    if (Math.abs(strideDiff) < 1.2) {
+      memos.push(`歩幅の差：約${round(Math.abs(strideDiff))}cm。歩くテンポは近めで、横に並んでも置いていかれにくい距離感です。`);
+    } else if (strideDiff > 0) {
+      memos.push(`歩幅の差：約${round(Math.abs(strideDiff))}cm。相手の方が少し歩幅が大きく、並んで歩くとこちらが半歩追う感じになりやすいです。`);
     } else {
-      memos.push(`身長差は約${round(abs)}cm。あなたの方が少し高く、相手の表情を上から見やすい距離感です。`);
+      memos.push(`歩幅の差：約${round(Math.abs(strideDiff))}cm。あなたの方が少し歩幅が大きめで、相手の歩調に合わせて歩く感じになりやすいです。`);
     }
 
-    memos.push(`ハグ位置の目安：${estimateHugPosition(diff)}`);
+    const armReach = data.arm - data.userHeight * 0.32;
+
+    if (armReach > 2) {
+      memos.push("腕を伸ばした時：相手の腕の方が長めで、肩や背中に手を回された時に包まれる感じが出やすいです。");
+    } else if (armReach < -2) {
+      memos.push("腕を伸ばした時：あなたの腕の方が少し長めで、こちらから抱き込む描写にも寄せやすいです。");
+    } else {
+      memos.push("腕を伸ばした時：腕の長さは近く、抱きしめ合った時にかなり対等な収まりになりやすいです。");
+    }
   }
 
   const estimatedUserHand = data.userHand || (data.userHeight ? data.userHeight * 0.108 : null);
 
   if (estimatedUserHand) {
     const handDiff = data.handLength - estimatedUserHand;
+    const absHand = Math.abs(handDiff);
 
-    if (Math.abs(handDiff) < 0.8) {
-      memos.push(`手の長さ差は約${round(Math.abs(handDiff))}cm。手を重ねても差は控えめで、近いサイズ感です。`);
+    if (absHand < 0.8) {
+      memos.push(`手を重ねた時：差は約${round(absHand)}cm。かなり近いサイズ感で、指先の距離が揃いやすいです。`);
+      memos.push("恋人繋ぎ：手の大きさが近いので、ぎゅっと絡めた時に対等で自然な収まりになりやすいです。");
     } else if (handDiff > 0) {
-      memos.push(`手の長さ差は約${round(handDiff)}cm。相手の手の方が大きく、包まれる印象が出やすいです。`);
+      memos.push(`手を重ねた時：相手の手が約${round(handDiff)}cm大きめ。手の甲や指先を少し包まれる印象になります。`);
+      memos.push("恋人繋ぎ：相手の指が外側からかぶさりやすく、握られている感じが出やすいです。");
     } else {
-      memos.push(`手の長さ差は約${round(Math.abs(handDiff))}cm。あなたの手の方が少し大きめの推定です。`);
+      memos.push(`手を重ねた時：あなたの手が約${round(absHand)}cm大きめ。相手の手元が少し繊細に見えやすいです。`);
+      memos.push("恋人繋ぎ：こちらから包むような手元描写に寄せやすいです。");
     }
   }
 
   if (data.userShoe) {
     const shoeDiff = data.shoeSize - data.userShoe;
+    const absShoe = Math.abs(shoeDiff);
 
-    if (Math.abs(shoeDiff) < 0.8) {
-      memos.push(`靴サイズ差は約${round(Math.abs(shoeDiff))}cm。玄関に並べても近いサイズ感です。`);
+    if (absShoe < 0.8) {
+      memos.push(`靴を並べた時：差は約${round(absShoe)}cm。玄関に並んだ靴のサイズ感はかなり近めです。`);
     } else if (shoeDiff > 0) {
-      memos.push(`靴サイズ差は約${round(shoeDiff)}cm。相手の靴の方が大きく、並べた時に生活感が出やすいです。`);
+      memos.push(`靴を並べた時：相手の靴が約${round(shoeDiff)}cm大きめ。並べると少しだけ相手の足元が大きく見えます。`);
     } else {
-      memos.push(`靴サイズ差は約${round(Math.abs(shoeDiff))}cm。あなたの靴の方が少し大きめの推定です。`);
+      memos.push(`靴を並べた時：あなたの靴が約${round(absShoe)}cm大きめ。相手の足元はやや控えめに見えます。`);
     }
   }
 
   return memos;
 }
 
-function estimateHugPosition(heightDiff) {
-  if (heightDiff >= 22) {
-    return "あなたの顔は相手の胸元〜鎖骨下あたりに来やすいです。";
+function createImageEvidenceMemos(data) {
+  const result = data.imageResult;
+  const memos = [];
+
+  if (!result) {
+    memos.push("画像補正結果はまだありません。9つの測定点を指定すると、頭身・脚長・肩幅・ウエスト幅の補正候補が表示されます。");
+    return memos;
   }
+
+  memos.push(`頭身：約${round(result.rawHeadRatio, 2)}頭身 → 採用候補は${result.headRatio}頭身です。`);
+  memos.push(`脚長傾向：股下比率は約${round(result.inseamRatio * 100, 1)}%。脚の印象は「${getLegTypeLabel(result.legType)}」として扱います。`);
+  memos.push(`肩幅傾向：肩幅比率は約${round(result.shoulderRatio * 100, 1)}%。肩幅の印象は「${getShoulderTypeLabel(result.shoulderType)}」です。`);
+  memos.push(`ウエスト傾向：ウエスト幅比率は約${round(result.waistRatio * 100, 1)}%。胴まわりの印象は「${getWaistTypeLabel(result.waistType)}」です。`);
+  memos.push(`シルエット：肩幅÷ウエストは約${round(result.shoulderWaistRatio, 2)}。「${getSilhouetteTypeLabel(result.silhouetteType)}」として補正しています。`);
+  memos.push(`最終補正：${data.frame.label}ベース / ${data.body.label}寄りとして推定しました。`);
+
+  return memos;
+}
+
+function getProfileKey(profileMap, profileObject) {
+  const found = Object.entries(profileMap).find(([, value]) => value === profileObject);
+  return found ? found[0] : "";
+}
+
+function getBodyImpressionLabel(frame, body) {
+  const key = `${getProfileKey(frameProfiles, frame)}_${getProfileKey(bodyProfiles, body)}`;
+
+  const labels = {
+    adultMale_slender: "骨格は男性寄りで、線はすっきり細い体型",
+    adultMale_slim: "細身だけど骨格のある体型",
+    adultMale_standard: "自然体で抱きしめやすい成人男性体型",
+    adultMale_muscular: "肩と胸に存在感のある体型",
+    adultMale_solid: "抱きしめた時に安定感のある体型",
+    neutralMale_slender: "線が細く、儚さのある体型",
+    neutralMale_slim: "中性的でしなやかな細身体型",
+    neutralMale_standard: "すらっと自然な中性的体型",
+    neutralMale_muscular: "細身に見えて芯のある体型",
+    neutralMale_solid: "中性的ながら安定感のある体型",
+    boyishMale_slender: "少年寄りで軽やかな華奢体型",
+    boyishMale_slim: "成長途中のような細身体型",
+    boyishMale_standard: "少年寄りで自然な体型",
+    boyishMale_muscular: "若さと運動量を感じる体型",
+    boyishMale_solid: "少年寄りながらしっかりした体型"
+  };
+
+  return labels[key] || `${frame.label}ベースの${body.label}寄り`;
+}
+
+function getBodyContourLabel(frame, body) {
+  const frameKey = getProfileKey(frameProfiles, frame);
+  const bodyKey = getProfileKey(bodyProfiles, body);
+
+  if (bodyKey === "slender") {
+    return "輪郭は細く、服の下の骨格がすっきり見えやすいタイプです。";
+  }
+
+  if (bodyKey === "slim") {
+    return "全体は細身ですが、肩や腰に自然な骨格の線が残るタイプです。";
+  }
+
+  if (bodyKey === "muscular") {
+    return "肩・胸・腕に厚みが出やすく、近くに立つと体格の良さが伝わりやすいタイプです。";
+  }
+
+  if (bodyKey === "solid") {
+    return "全体に安定感があり、抱きしめた時にしっかりした重みを感じやすいタイプです。";
+  }
+
+  if (frameKey === "neutralMale") {
+    return "すらっとした線と自然な厚みが両立した、柔らかい輪郭です。";
+  }
+
+  return "極端に細すぎず大きすぎず、日常描写に落とし込みやすい輪郭です。";
+}
+
+function getNeckImpression(neck, height) {
+  const ratio = neck / height;
+
+  if (ratio < 0.205) {
+    return "首元はすっきり細め";
+  }
+
+  if (ratio > 0.225) {
+    return "首元に少し厚みがある";
+  }
+
+  return "自然な首元";
+}
+
+function getShoulderImpression(shoulder, height) {
+  const ratio = shoulder / height;
+
+  if (ratio < 0.235) {
+    return "肩まわりは控えめ";
+  }
+
+  if (ratio > 0.255) {
+    return "肩幅に存在感がある";
+  }
+
+  return "自然な肩幅";
+}
+
+function getChestImpression(chest, waist) {
+  const diff = chest - waist;
+
+  if (diff > 18) {
+    return "胸まわりと腰まわりの差が出やすい";
+  }
+
+  if (diff < 12) {
+    return "上半身は直線的に見えやすい";
+  }
+
+  return "自然な上半身の厚み";
+}
+
+function getWaistImpression(waist, height) {
+  const ratio = waist / height;
+
+  if (ratio < 0.405) {
+    return "腰まわりは細め";
+  }
+
+  if (ratio > 0.455) {
+    return "腰まわりに安定感あり";
+  }
+
+  return "自然な腰まわり";
+}
+
+function createHeightDistanceMemo(diff, abs) {
+  if (abs < 2) {
+    return `身長差：約${round(abs)}cm。ほぼ同じ目線で、正面から向き合うと表情の距離が近いです。`;
+  }
+
+  if (diff >= 40) {
+    return `身長差：約${round(abs)}cm。かなり極端な体格差があります。並ぶと相手の身体が大きく視界に入り、見上げるだけで存在感に包まれる距離感です。`;
+  }
+
+  if (diff >= 35) {
+    return `身長差：約${round(abs)}cm。かなり大きな体格差があります。相手の上半身が近く、見上げる動作そのものが分かりやすく出ます。`;
+  }
+
+  if (diff >= 28) {
+    return `身長差：約${round(abs)}cm。はっきりした高低差があります。隣に立つと相手の肩や胸元が近く、包まれる印象がかなり出やすいです。`;
+  }
+
+  if (diff >= 20) {
+    return `身長差：約${round(abs)}cm。かなり見上げる差です。向き合うと相手の顔がしっかり上にあり、身長差の甘さが分かりやすく出ます。`;
+  }
+
+  if (diff >= 12) {
+    return `身長差：約${round(abs)}cm。あなたが自然に見上げる形になり、隣に立つと相手の肩口や首元が近く感じやすいです。`;
+  }
+
+  if (diff >= 5) {
+    return `身長差：約${round(abs)}cm。少し見上げる距離で、並ぶとほどよい目線差が出ます。`;
+  }
+
+  if (diff > 0) {
+    return `身長差：約${round(abs)}cm。ほぼ近い目線ですが、相手の方がほんの少し高く、向き合うと微妙な見上げ感があります。`;
+  }
+
+  if (diff <= -40) {
+    return `身長差：約${round(abs)}cm。あなたの方がかなり高い、極端な逆身長差です。相手はしっかり見上げる形になり、こちらが抱き込む・包む側の構図がかなり作りやすいです。`;
+  }
+
+  if (diff <= -35) {
+    return `身長差：約${round(abs)}cm。あなたの方がかなり高い差です。相手は見上げる形になりやすく、頭や肩を視界に収めやすい距離感です。`;
+  }
+
+  if (diff <= -28) {
+    return `身長差：約${round(abs)}cm。あなたの方がはっきり高く、隣に立つと相手の頭や肩が視界に入りやすい距離感です。守る・覗き込む・抱き寄せる描写に寄せやすいです。`;
+  }
+
+  if (diff <= -20) {
+    return `身長差：約${round(abs)}cm。あなたの方がかなり高めです。相手が見上げる構図になりやすく、手を引く・肩を抱くような描写が映えます。`;
+  }
+
+  if (diff <= -12) {
+    return `身長差：約${round(abs)}cm。あなたの方が自然に見下ろす形になり、相手の表情や髪の動きが見えやすい距離感です。`;
+  }
+
+  if (diff <= -5) {
+    return `身長差：約${round(abs)}cm。あなたの方が少し高く、相手の顔をやや上から見やすい距離です。`;
+  }
+
+  return `身長差：約${round(abs)}cm。ほぼ近い目線ですが、あなたの方がほんの少し高い距離感です。`;
+}
+
+function createEyeLineMemo(heightDiff) {
+  if (heightDiff >= 40) {
+    return "相手の胸元〜胸上が大きく視界に入り、顔を見るにはかなりしっかり見上げる高さです。";
+  }
+
+  if (heightDiff >= 35) {
+    return "相手の胸元〜胸上あたりがかなり近く、顔を見るにはしっかり見上げる高さです。";
+  }
+
+  if (heightDiff >= 28) {
+    return "相手の胸元〜鎖骨下あたりに視線が行きやすく、見上げる動作がはっきり出ます。";
+  }
+
+  if (heightDiff >= 20) {
+    return "相手の鎖骨下〜胸元あたりに視線が行きやすい高さです。";
+  }
+
   if (heightDiff >= 12) {
-    return "あなたの顔は相手の鎖骨〜肩口あたりに来やすいです。";
+    return "相手の鎖骨〜肩口あたりに視線が行きやすい高さです。";
   }
+
   if (heightDiff >= 5) {
-    return "目線差は少しあり、肩に顔を寄せやすい高さです。";
+    return "少しだけ見上げる距離で、目線差にほどよい甘さが出ます。";
   }
+
+  if (heightDiff > -5) {
+    return "かなり近い目線で、表情の変化がすぐ分かる距離感です。";
+  }
+
+  if (heightDiff > -12) {
+    return "あなたの方が少し高く、相手の顔をやや上から見やすい距離感です。";
+  }
+
+  if (heightDiff > -20) {
+    return "あなたの方が自然に見下ろす形になり、相手の表情や前髪の動きが目に入りやすい高さです。";
+  }
+
+  if (heightDiff > -28) {
+    return "相手はあなたを見上げる形になりやすく、こちらからは頭や肩のラインが見えやすい距離です。";
+  }
+
+  if (heightDiff > -35) {
+    return "あなたの方がはっきり高く、相手の頭や肩を視界に収めやすい高さです。";
+  }
+
+  if (heightDiff > -40) {
+    return "あなたの方がかなり高く、相手がしっかり見上げる構図になりやすい距離感です。";
+  }
+
+  return "あなたの方が非常に高く、相手が大きく見上げる構図になりやすい距離感です。";
+}
+
+function estimateHugPosition(heightDiff) {
+  if (heightDiff >= 40) {
+    return "あなたの顔は相手の胸元〜胸上あたりに来やすく、抱きしめられると身体ごと包まれる印象がかなり強く出ます。";
+  }
+
+  if (heightDiff >= 35) {
+    return "あなたの顔は相手の胸元あたりに来やすいです。腕を回されると、上から覆われるような抱きしめ方になりやすいです。";
+  }
+
+  if (heightDiff >= 28) {
+    return "あなたの顔は相手の胸元〜鎖骨下あたりに来やすく、相手の肩や腕の大きさを感じやすい距離です。";
+  }
+
+  if (heightDiff >= 20) {
+    return "あなたの顔は相手の鎖骨下〜胸元あたりに来やすいです。身長差のあるハグとしてかなり分かりやすい収まりになります。";
+  }
+
+  if (heightDiff >= 12) {
+    return "あなたの顔は相手の鎖骨〜肩口あたりに来やすいです。肩口に顔を寄せる描写に向いています。";
+  }
+
+  if (heightDiff >= 5) {
+    return "目線差は少しあり、肩や首元に顔を寄せやすい高さです。";
+  }
+
   if (heightDiff > -5) {
     return "かなり近い目線で、正面から抱きしめると顔の距離が近くなりやすいです。";
   }
-  return "あなたの方が少し高めで、相手の頭や肩を抱き込む描写に寄せやすいです。";
+
+  if (heightDiff > -12) {
+    return "あなたの方が少し高く、相手の頭や肩をやや上から抱き込むような収まりになりやすいです。";
+  }
+
+  if (heightDiff > -20) {
+    return "あなたの方が自然に高く、相手の頭が肩口〜首元に近づきやすいハグになります。";
+  }
+
+  if (heightDiff > -28) {
+    return "あなたの方がかなり高めで、相手を腕の中に収める・肩ごと抱き寄せる構図が作りやすいです。";
+  }
+
+  if (heightDiff > -35) {
+    return "あなたの方がはっきり高く、相手は見上げる形になりやすいです。抱きしめるとこちらが上から包む印象が強くなります。";
+  }
+
+  if (heightDiff > -40) {
+    return "あなたの方がかなり高く、相手の頭や肩を抱え込むようなハグに寄せやすいです。逆身長差の印象が強く出ます。";
+  }
+
+  return "あなたの方が非常に高く、相手をしっかり包み込む構図になります。相手が見上げる・こちらが抱え込む描写がかなり映えます。";
+}
+
+function createStandingSilhouetteMemo(heightDiff, shoulder) {
+  if (heightDiff >= 35) {
+    return "相手の縦の存在感がかなり強く、肩幅や上半身の大きさも視界に入りやすいです。";
+  }
+
+  if (heightDiff >= 20) {
+    return "相手の方がはっきり高く、隣に立つと肩の位置と頭の高さに分かりやすい差が出ます。";
+  }
+
+  if (heightDiff >= 8) {
+    return "相手の方が少し高く、横に並ぶと自然な見上げ感が出ます。";
+  }
+
+  if (heightDiff > -8) {
+    return "高さが近く、肩を並べた時の距離感はかなり対等に見えます。";
+  }
+
+  if (heightDiff > -20) {
+    return "あなたの方が少し高く、相手の頭や肩が視界に入りやすい並びになります。";
+  }
+
+  if (heightDiff > -35) {
+    return "あなたの方がはっきり高く、隣に立つと相手を見下ろす構図が自然に出ます。";
+  }
+
+  return "あなたの方がかなり高く、相手を横に置いた時の逆身長差が強く印象に残ります。";
 }
 
 
@@ -541,12 +899,12 @@ function buildCopyText(name, basicRows, detailRows, memos, compareMemos) {
     return `【${title}】\n${body}`;
   };
 
-  const memoText = memos.map((memo) => `・${memo}`).join("\n");
+  const evidenceText = memos.map((memo) => `・${memo}`).join("\n");
   const compareText = compareMemos.length
-    ? `\n\n【あなたとの比較】\n${compareMemos.map((memo) => `・${memo}`).join("\n")}`
+    ? `\n\n【あなたとの距離感】\n${compareMemos.map((memo) => `・${memo}`).join("\n")}`
     : "";
 
-  return `【${name}の推定身体情報】\n\n${rowsToText("基本寸法", basicRows)}\n\n${rowsToText("手・足・指まわり", detailRows)}\n\n【創作メモ】\n${memoText}${compareText}\n\n※この結果は公式情報ではありません。創作・妄想補助用の推定値です。`;
+  return `【${name}の推定身体情報】\n\n${rowsToText("身体の輪郭", basicRows)}\n\n${rowsToText("手・指・足元", detailRows)}${compareText}\n\n【画像補正の根拠】\n${evidenceText}\n\n※この結果は公式情報ではありません。創作・妄想補助用の推定値です。`;
 }
 
 async function copyResult() {
