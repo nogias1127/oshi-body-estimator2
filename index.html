@@ -12,19 +12,20 @@
     <div class="hero-inner">
       <h1>推し身体推定メーカー</h1>
       <p class="lead">
-        公式身長しか分からない推しの、頭のてっぺんから爪先までをざっくり推定します。
+        公式身長と立ち絵から、推しの身体の輪郭・手元・足元・あなたとの距離感をざっくり推定します。
       </p>
-<details class="about-box">
-  <summary>※推定について</summary>
-  <p>
-    このツールは、入力された身長・体格・頭身・手足の印象をもとに、肩幅・胸囲・股下・手足のサイズなどをざっくり推定するものです。
-    結果は公式設定や実在人物の正確な計測値ではなく、創作・妄想・サイズ感確認のための目安です。
-    体格・絵柄・衣装・ポーズによって印象は変わるため、「だいたいこのくらい」として創作時のサイズ感確認や妄想補助としてご利用ください。
-  </p>
-  <p>
-    このツールへの入力内容はサーバー等には送信されず、どこにも保存されません。入力内容はブラウザ上で処理されますので安心してお楽しみください。
-  </p>
-</details>
+
+      <details class="about-box">
+        <summary>※推定について</summary>
+        <p>
+          このツールは、入力された身長と立ち絵画像の測定点をもとに、肩幅・胸囲・股下・手足のサイズなどをざっくり推定するものです。
+          結果は公式設定や実在人物の正確な計測値ではなく、創作・妄想・サイズ感確認のための目安です。
+          体格・絵柄・衣装・ポーズ・パースによって印象は変わるため、「だいたいこのくらい」として創作時のサイズ感確認や妄想補助としてご利用ください。
+        </p>
+        <p>
+          このツールへの入力内容はサーバー等には送信されず、どこにも保存されません。入力内容はブラウザ上で処理されます。
+        </p>
+      </details>
     </div>
   </header>
 
@@ -39,25 +40,25 @@
         <ol class="step-list">
           <li>
             <span class="step-list__num">1</span>
-            <p>推しの基本情報を入力</p>
+            <p>推しの名前・身長・手の印象を入力</p>
           </li>
           <li>
             <span class="step-list__num">2</span>
-            <p>任意であなたとの比較情報を追加</p>
+            <p>立ち絵画像を読み込み、9つの測定点を指定</p>
           </li>
           <li>
             <span class="step-list__num">3</span>
-            <p>推定結果を確認</p>
+            <p>任意であなたとの比較情報を追加</p>
           </li>
           <li>
             <span class="step-list__num">4</span>
-            <p>必要に応じてコピー・PNG保存</p>
+            <p>推定結果を確認・コピー・PNG保存</p>
           </li>
         </ol>
 
         <div class="side-note">
           <p>
-            入力内容はブラウザ上で処理されます。創作時のサイズ感確認や妄想補助として使えます。
+            画像補正を使うため、立ち絵画像の読み込みと測定点の指定が必要です。創作時のサイズ感確認や妄想補助として使えます。
           </p>
         </div>
       </aside>
@@ -69,82 +70,81 @@
               <p class="eyebrow">Basic Data</p>
               <h2>推しの基本情報</h2>
               <p class="hint">
-                推定のベースになる情報を入力します。
+                名前・身長・手の印象を入力します。体格や頭身は立ち絵画像から補助推定します。
               </p>
             </div>
           </div>
 
           <div class="form-grid">
-  <label class="field">
-    <span class="field-label">推しの名前</span>
-    <input id="oshiName" type="text" placeholder="例：あのひと、彼" />
-  </label>
+            <label class="field">
+              <span class="field-label">推しの名前</span>
+              <input id="oshiName" type="text" placeholder="例：あのひと、彼" />
+            </label>
 
-  <label class="field">
-    <span class="field-label">推しの身長（cm）</span>
-    <input id="height" type="number" min="100" max="250" step="0.1" placeholder="例：175.2" />
-  </label>
+            <label class="field">
+              <span class="field-label">推しの身長（cm）</span>
+              <input id="height" type="number" min="100" max="250" step="0.1" placeholder="例：175.2" />
+            </label>
 
-  <label class="field">
-    <span class="field-label">手の印象</span>
-    <select id="handType">
-      <option value="small">小さめ</option>
-      <option value="normal" selected>標準</option>
-      <option value="large">大きめ</option>
-      <option value="long">指が長い</option>
-    </select>
-  </label>
-</div>
+            <label class="field">
+              <span class="field-label">手の印象</span>
+              <select id="handType">
+                <option value="small">小さめ</option>
+                <option value="normal" selected>標準</option>
+                <option value="large">大きめ</option>
+                <option value="long">指が長い</option>
+              </select>
+            </label>
+          </div>
         </section>
 
+        <section class="panel input-card">
+          <div class="card-header">
+            <div>
+              <p class="eyebrow">Image Assist</p>
+              <h2>立ち絵から比率を補正する</h2>
+              <p class="hint">
+                立ち絵画像を読み込み、9つの測定点から頭身・脚長・肩幅・ウエスト幅の印象を補助推定します。
+              </p>
 
-  <section class="panel input-card">
-  <div class="card-header">
-    <div>
-      <p class="eyebrow">Image Assist</p>
-      <h2>立ち絵から比率を補正する</h2>
-      <p class="hint">
-  立ち絵画像を読み込み、9つの測定点から頭身・脚長・肩幅・ウエスト幅の印象を補助推定します。
-</p>
+              <details class="about-box assist-guide">
+                <summary>測定点の指定方法</summary>
+                <p>
+                  画像を選択したあと、キャンバス上で
+                  「頭頂 → あご → 左肩 → 右肩 → ウエスト左 → ウエスト右 → 股下 → 左足先 → 右足先」
+                  の順にクリックしてください。
+                </p>
+                <p>
+                  頭頂は髪や頭部本体の一番上、あごは顔の輪郭の一番下を指定します。
+                  左右肩は肩の外端、左右ウエストは胴が一番細く見えるあたり、股下は脚が分かれ始める位置、足先は靴底を含めた一番下を目安にしてください。
+                </p>
+                <p>
+                  ポーズ・衣装・パース・画像の切れ方によって誤差が出るため、結果は正確な計測値ではなく、印象補正として扱ってください。
+                </p>
+              </details>
+            </div>
+          </div>
 
-<details class="about-box assist-guide">
-  <summary>測定点の指定方法</summary>
-  <p>
-    画像を選択したあと、キャンバス上で
-    「頭頂 → あご → 左肩 → 右肩 → ウエスト左 → ウエスト右 → 股下 → 左足先 → 右足先」
-    の順にクリックしてください。
-  </p>
-  <p>
-    頭頂は髪や頭部本体の一番上、あごは顔の輪郭の一番下を指定します。
-    左右肩は肩の外端、左右ウエストは胴が一番細く見えるあたり、股下は脚が分かれ始める位置、足先は靴底を含めた一番下を目安にしてください。
-  </p>
-  <p>
-    ポーズ・衣装・パース・画像の切れ方によって誤差が出るため、結果は正確な計測値ではなく、印象補正として扱ってください。
-  </p>
-</details>
-    </div>
-  </div>
+          <label class="field">
+            <span class="field-label">立ち絵画像</span>
+            <input id="poseImageInput" type="file" accept="image/*" />
+          </label>
 
-<label class="field">
-  <span class="field-label">立ち絵画像</span>
-  <input id="poseImageInput" type="file" accept="image/*" />
-</label>
+          <div class="pose-tool">
+            <canvas id="poseCanvas" class="pose-canvas"></canvas>
+            <p id="poseCanvasMessage" class="pose-message">
+              立ち絵画像を選択すると、ここに表示されます。
+            </p>
+          </div>
 
-<div class="pose-tool">
-  <canvas id="poseCanvas" class="pose-canvas"></canvas>
-  <p id="poseCanvasMessage" class="pose-message">
-    立ち絵画像を選択すると、ここに表示されます。
-  </p>
-</div>
+          <div class="button-row">
+            <button id="resetPointsButton" class="button secondary" type="button">ポイントをリセット</button>
+            <button id="applyImageAssistButton" class="button primary" type="button">この画像補正を使う</button>
+          </div>
 
-  <div class="button-row">
-    <button id="resetPointsButton" class="button secondary" type="button">ポイントをリセット</button>
-    <button id="applyImageAssistButton" class="button primary" type="button">この画像補正を使う</button>
-  </div>
+          <div id="imageAssistResult" class="assist-result"></div>
+        </section>
 
-  <div id="imageAssistResult" class="assist-result"></div>
-</section>
-        
         <section class="panel input-card">
           <div class="card-header">
             <span class="card-icon ui-icon ui-icon--compare" aria-hidden="true"></span>
@@ -152,7 +152,7 @@
               <p class="eyebrow">Optional Compare</p>
               <h2>あなたとの比較</h2>
               <p class="hint">
-                入力すると、身長差・手の差・靴サイズ差の目安が表示されます。
+                入力すると、身長差・手の差・靴サイズ差から、並んだ時や触れた時の距離感を表示します。
               </p>
             </div>
           </div>
@@ -163,19 +163,19 @@
               <input id="userHeight" type="number" min="100" max="220" step="0.1" placeholder="例：158.3" />
             </label>
 
-<div class="field">
-  <div class="field-label-row">
-    <label class="field-label" for="userHand">あなたの手の長さ（cm）</label>
+            <div class="field">
+              <div class="field-label-row">
+                <label class="field-label" for="userHand">あなたの手の長さ（cm）</label>
 
-    <span class="help-tip">
-      <button class="help-button" type="button" aria-label="手の長さの測り方"></button>
-      <span class="help-text" role="tooltip">
-        手首の付け根のシワあたりから、中指の先端までの長さです。
-      </span>
-    </span>
-  </div>
-  <input id="userHand" type="number" min="10" max="30" step="0.1" placeholder="未入力でもOK" />
-</div>
+                <span class="help-tip">
+                  <button class="help-button" type="button" aria-label="手の長さの測り方"></button>
+                  <span class="help-text" role="tooltip">
+                    手首の付け根のシワあたりから、中指の先端までの長さです。
+                  </span>
+                </span>
+              </div>
+              <input id="userHand" type="number" min="10" max="30" step="0.1" placeholder="未入力でもOK" />
+            </div>
 
             <label class="field">
               <span class="field-label">あなたの靴サイズ（cm）</span>
@@ -225,7 +225,7 @@
               <div class="panel result-card">
                 <div class="result-card__header">
                   <span class="result-card__icon">01</span>
-                  <h3>基本寸法</h3>
+                  <h3>身体の輪郭</h3>
                 </div>
                 <table>
                   <tbody id="basicTable"></tbody>
@@ -235,47 +235,47 @@
               <div class="panel result-card">
                 <div class="result-card__header">
                   <span class="result-card__icon">02</span>
-                  <h3>手・足・指まわり</h3>
+                  <h3>手・指・足元</h3>
                 </div>
                 <table>
                   <tbody id="detailTable"></tbody>
                 </table>
               </div>
 
-              <div class="panel result-card">
-                <div class="result-card__header">
-                  <span class="result-card__icon">03</span>
-                  <h3>創作メモ</h3>
-                </div>
-                <ul id="memoList" class="memo-list"></ul>
-              </div>
-
               <div class="panel result-card" id="compareCard">
                 <div class="result-card__header">
-                  <span class="result-card__icon">04</span>
-                  <h3>あなたとの比較</h3>
+                  <span class="result-card__icon">03</span>
+                  <h3>あなたとの距離感</h3>
                 </div>
                 <ul id="compareList" class="memo-list"></ul>
               </div>
+
+              <div class="panel result-card">
+                <div class="result-card__header">
+                  <span class="result-card__icon">04</span>
+                  <h3>画像補正の根拠</h3>
+                </div>
+                <ul id="memoList" class="memo-list"></ul>
+              </div>
             </div>
 
-<p class="disclaimer">
-  この推定は、主に男性キャラクター向けの創作・妄想・サイズ感確認用の目安です。実在人物や公式設定の正確な身体情報を示すものではありません。
-</p>
+            <p class="disclaimer">
+              この推定は、主に男性キャラクター向けの創作・妄想・サイズ感確認用の目安です。実在人物や公式設定の正確な身体情報を示すものではありません。
+            </p>
           </div>
         </section>
       </div>
     </div>
   </main>
 
-<footer class="footer">
-  <p>
-    推し身体推定メーカー α版<br>
-    Created by <a href="https://x.com/nogi_on_haka" target="_blank" rel="noopener noreferrer">nogi</a>
-  </p>
-</footer>
+  <footer class="footer">
+    <p>
+      推し身体推定メーカー α版<br>
+      Created by <a href="https://x.com/nogi_on_haka" target="_blank" rel="noopener noreferrer">nogi</a>
+    </p>
+  </footer>
 
-<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
-<script src="./script.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+  <script src="./script.js?v=30"></script>
 </body>
 </html>
