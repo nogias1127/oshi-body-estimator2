@@ -334,52 +334,52 @@ function estimate() {
   const imageResult = posePointState.result || calculateImageAssist();
   const ringSizes = createRingSizeMap(ringSize);
 
-const basicRows = createBodyContourRows({
-  frame,
-  body,
-  hand,
-  leg,
-  height,
-  minWeight,
-  maxWeight,
-  headHeight,
-  neck,
-  shoulder,
-  chest,
-  waist,
-  hip,
-  torso,
-  inseam,
-  arm,
-  sleeve,
-  imageResult
-});
+  const basicRows = createBodyContourRows({
+    frame,
+    body,
+    hand,
+    leg,
+    height,
+    minWeight,
+    maxWeight,
+    headHeight,
+    neck,
+    shoulder,
+    chest,
+    waist,
+    hip,
+    torso,
+    inseam,
+    arm,
+    sleeve,
+    imageResult
+  });
 
-const handRows = createHandRows({
-  handLength,
-  handWidth,
-  middleFinger,
-  wrist,
-  upperArm
-});
+  const handRows = createHandRows({
+    handLength,
+    handWidth,
+    middleFinger,
+    wrist,
+    upperArm
+  });
 
-const ringRows = createRingRows({
-  ringSizes
-});
+  const ringRows = createRingRows({
+    ringSizes
+  });
 
-const footRows = createFootRows({
-  thigh,
-  calf,
-  footLength,
-  footWidth,
-  shoeSize
-});
+  const footRows = createFootRows({
+    thigh,
+    calf,
+    footLength,
+    footWidth,
+    shoeSize
+  });
 
-const detailRows = [
-  ...handRows,
-  ...ringRows,
-  ...footRows
-];
+  const detailRows = [
+    ...handRows,
+    ...ringRows,
+    ...footRows
+  ];
 
   const memos = createImageEvidenceMemos({
     imageResult,
@@ -474,11 +474,11 @@ function createHandRows(data) {
 
 function createRingRows(data) {
   return [
-    ["親指", `${data.ringSizes.thumb}号相当`],
-    ["人差指", `${data.ringSizes.index}号相当`],
-    ["中指", `${data.ringSizes.middle}号相当`],
-    ["薬指", `${data.ringSizes.ring}号相当`],
-    ["小指", `${data.ringSizes.little}号相当`]
+    ["親指", `${data.ringSizes.thumb}号`],
+    ["人差指", `${data.ringSizes.index}号`],
+    ["中指", `${data.ringSizes.middle}号`],
+    ["薬指", `${data.ringSizes.ring}号`],
+    ["小指", `${data.ringSizes.little}号`]
   ];
 }
 
@@ -527,13 +527,7 @@ function createDistanceMemos(data) {
     const userInseam = data.userHeight * 0.455;
     const strideDiff = data.inseam * 0.48 - userInseam * 0.48;
 
-    if (Math.abs(strideDiff) < 1.2) {
-      memos.push(`歩幅の差：約${round(Math.abs(strideDiff))}cm。歩くテンポは近めで、横に並んでも置いていかれにくい距離感です。`);
-    } else if (strideDiff > 0) {
-      memos.push(`歩幅の差：約${round(Math.abs(strideDiff))}cm。相手の方が少し歩幅が大きく、並んで歩くとこちらが半歩追う感じになりやすいです。`);
-    } else {
-      memos.push(`歩幅の差：約${round(Math.abs(strideDiff))}cm。あなたの方が少し歩幅が大きめで、相手の歩調に合わせて歩く感じになりやすいです。`);
-    }
+    memos.push(createStrideMemo(strideDiff, diff));
 
     const armReach = data.arm - data.userHeight * 0.32;
 
@@ -566,18 +560,111 @@ function createDistanceMemos(data) {
 
   if (data.userShoe) {
     const shoeDiff = data.shoeSize - data.userShoe;
-    const absShoe = Math.abs(shoeDiff);
-
-    if (absShoe < 0.8) {
-      memos.push(`靴を並べた時：差は約${round(absShoe)}cm。玄関に並んだ靴のサイズ感はかなり近めです。`);
-    } else if (shoeDiff > 0) {
-      memos.push(`靴を並べた時：相手の靴が約${round(shoeDiff)}cm大きめ。並べると少しだけ相手の足元が大きく見えます。`);
-    } else {
-      memos.push(`靴を並べた時：あなたの靴が約${round(absShoe)}cm大きめ。相手の足元はやや控えめに見えます。`);
-    }
+    memos.push(createShoeMemo(shoeDiff));
   }
 
   return memos;
+}
+
+function createStrideMemo(strideDiff, heightDiff) {
+  const absStride = Math.abs(strideDiff);
+  const absHeight = Math.abs(heightDiff);
+
+  if (absHeight < 5) {
+    if (absStride < 1.2) {
+      return `歩幅の差：約${round(absStride)}cm。身長も歩幅も近く、横に並ぶとかなり同じテンポで歩きやすい距離感です。`;
+    }
+
+    if (strideDiff > 0) {
+      return `歩幅の差：約${round(absStride)}cm。身長は近めですが、相手の方が少し歩幅が大きく、歩き出しでわずかに先へ出やすいです。`;
+    }
+
+    return `歩幅の差：約${round(absStride)}cm。身長は近めですが、あなたの方が少し歩幅が大きく、相手に歩調を合わせる感じになりやすいです。`;
+  }
+
+  if (heightDiff >= 5 && heightDiff < 12) {
+    return `歩幅の差：約${round(absStride)}cm。相手の方が少し高く、並んで歩くと自然に半歩だけリードされるくらいの距離感です。`;
+  }
+
+  if (heightDiff >= 12 && heightDiff < 20) {
+    return `歩幅の差：約${round(absStride)}cm。相手の方が自然に歩幅を取りやすく、横に並ぶとあなたが少し歩調を合わせる感じになりやすいです。`;
+  }
+
+  if (heightDiff >= 20 && heightDiff < 28) {
+    return `歩幅の差：約${round(absStride)}cm。身長差がかなりあるため、相手が普通に歩くだけでも一歩が大きく見えやすいです。手を引かれる・少し急いで追う描写に向いています。`;
+  }
+
+  if (heightDiff >= 28 && heightDiff < 40) {
+    return `歩幅の差：約${round(absStride)}cm。はっきりした身長差があり、相手の歩幅に合わせるにはこちらが小走り気味になる場面も作りやすいです。歩調を落として待ってくれる描写が映えます。`;
+  }
+
+  if (heightDiff >= 40) {
+    return `歩幅の差：約${round(absStride)}cm。かなり極端な身長差があるため、相手の一歩が大きく、こちらに合わせて歩幅を小さくしてくれる描写がかなり映えます。`;
+  }
+
+  if (heightDiff <= -5 && heightDiff > -12) {
+    return `歩幅の差：約${round(absStride)}cm。あなたの方が少し高く、相手の歩調に合わせて自然に歩幅をゆるめる感じになりやすいです。`;
+  }
+
+  if (heightDiff <= -12 && heightDiff > -20) {
+    return `歩幅の差：約${round(absStride)}cm。あなたの方が自然に歩幅を取りやすく、相手が隣で少しテンポを合わせる距離感です。`;
+  }
+
+  if (heightDiff <= -20 && heightDiff > -28) {
+    return `歩幅の差：約${round(absStride)}cm。あなたの方がかなり高めなので、普通に歩くと相手より一歩が大きく見えやすいです。手を引く・歩調を落とす描写に向いています。`;
+  }
+
+  if (heightDiff <= -28 && heightDiff > -40) {
+    return `歩幅の差：約${round(absStride)}cm。はっきりした逆身長差があり、あなたが歩幅を合わせてあげる側になりやすいです。相手が半歩遅れてついてくる描写が作りやすいです。`;
+  }
+
+  return `歩幅の差：約${round(absStride)}cm。かなり極端な逆身長差があるため、あなたの一歩が大きく、相手に合わせてゆっくり歩く描写がかなり映えます。`;
+}
+
+function createShoeMemo(shoeDiff) {
+  const absShoe = Math.abs(shoeDiff);
+
+  if (absShoe < 0.5) {
+    return `靴を並べた時：差は約${round(absShoe)}cm。ほとんど同じサイズ感で、玄関に並んだ時もかなり近い足元に見えます。`;
+  }
+
+  if (absShoe < 1.0) {
+    if (shoeDiff > 0) {
+      return `靴を並べた時：相手の靴が約${round(absShoe)}cm大きめ。ほぼ近いけれど、並べると少しだけ相手の足元が大きく見える差です。`;
+    }
+
+    return `靴を並べた時：あなたの靴が約${round(absShoe)}cm大きめ。ほぼ近いサイズ感ですが、相手の足元が少しだけ控えめに見えます。`;
+  }
+
+  if (absShoe < 2.0) {
+    if (shoeDiff > 0) {
+      return `靴を並べた時：相手の靴が約${round(absShoe)}cm大きめ。玄関に並べると、相手の足元の方がひと回り大きく見えやすいです。`;
+    }
+
+    return `靴を並べた時：あなたの靴が約${round(absShoe)}cm大きめ。相手の靴は少し小さく、足元だけ見るとやや繊細な印象になります。`;
+  }
+
+  if (absShoe < 3.0) {
+    if (shoeDiff > 0) {
+      return `靴を並べた時：相手の靴が約${round(absShoe)}cm大きめ。並べた瞬間にサイズ差が分かりやすく、足元から体格差を感じやすいです。`;
+    }
+
+    return `靴を並べた時：あなたの靴が約${round(absShoe)}cm大きめ。相手の靴がはっきり小さく見えて、逆身長差や繊細さの演出に使いやすいです。`;
+  }
+
+  if (absShoe < 4.5) {
+    if (shoeDiff > 0) {
+      return `靴を並べた時：相手の靴が約${round(absShoe)}cm大きめ。かなり分かりやすい差で、玄関に置いた靴だけでも相手の体格や足元の存在感が出ます。`;
+    }
+
+    return `靴を並べた時：あなたの靴が約${round(absShoe)}cm大きめ。相手の靴がかなり控えめに見え、足元のサイズ差が印象に残りやすいです。`;
+  }
+
+  if (shoeDiff > 0) {
+    return `靴を並べた時：相手の靴が約${round(absShoe)}cm大きめ。かなり極端な差で、玄関に並んだ靴だけでも体格差や歩幅の違いを想像しやすいです。`;
+  }
+
+  return `靴を並べた時：あなたの靴が約${round(absShoe)}cm大きめ。かなり極端な逆サイズ差で、相手の足元が小さく見えやすく、守る側・包む側の構図に寄せやすいです。`;
 }
 
 function createImageEvidenceMemos(data) {
@@ -1166,7 +1253,7 @@ function resetForm() {
   if ($("userHand")) $("userHand").value = "";
   if ($("userShoe")) $("userShoe").value = "";
 
-  resetImageAssistProfile();
+  resetPoseImage();
 
   if ($("resultSection")) $("resultSection").classList.add("hidden");
   if ($("copyButton")) $("copyButton").dataset.copyText = "";
@@ -1398,7 +1485,7 @@ function drawNextPoseGuide(ctx, canvas) {
   const nextPoint = getNextPosePoint();
 
   if (!nextPoint) {
-    drawGuideBadge(ctx, canvas, "ポイント指定完了", "この画像補正を使えます", "bottom");
+    drawGuideBadge(ctx, canvas, "ポイント指定完了", "このまま推定できます", "bottom");
     return;
   }
 
@@ -1524,7 +1611,7 @@ function handlePoseCanvasClick(event) {
   if (afterNextPoint) {
     setPoseMessage(`次は「${afterNextPoint.label}」をクリックしてください。`);
   } else {
-    setPoseMessage("ポイント指定が完了しました。必要なら『この画像補正を使う』を押してください。");
+    setPoseMessage("ポイント指定が完了しました。このまま推定できます。");
   }
 }
 
@@ -1824,31 +1911,6 @@ function resetPosePointsOnly() {
   }
 }
 
-function applyImageAssistResult() {
-  const profile = getEffectiveImageProfile();
-
-  if (!profile) {
-    alert("先に画像上で、頭頂・あご・左右肩・左右ウエスト・股下・左右足先を指定してください。");
-    return;
-  }
-
-  imageAssistProfile.enabled = true;
-  imageAssistProfile.headRatio = profile.headRatio;
-  imageAssistProfile.legType = profile.legType;
-  imageAssistProfile.frameType = profile.frameType;
-  imageAssistProfile.bodyType = profile.bodyType;
-
-  const resultBox = $("imageAssistResult");
-
-  if (resultBox) {
-    resultBox.innerHTML += `
-      <p class="assist-result__applied">
-        この画像補正を使用します。
-      </p>
-    `;
-  }
-}
-
 
 /* =========================================================
   9. イベント登録
@@ -1863,7 +1925,6 @@ function bindEvents() {
   const poseImageInput = $("poseImageInput");
   const poseCanvas = $("poseCanvas");
   const resetPointsButton = $("resetPointsButton");
-  const applyImageAssistButton = $("applyImageAssistButton");
 
   if (estimateButton) {
     estimateButton.addEventListener("click", estimate);
@@ -1899,12 +1960,6 @@ function bindEvents() {
     resetPointsButton.addEventListener("click", resetPosePointsOnly);
   } else {
     console.warn("resetPointsButton が見つかりません。index.html のボタンIDを確認してください。");
-  }
-
-  if (applyImageAssistButton) {
-    applyImageAssistButton.addEventListener("click", applyImageAssistResult);
-  } else {
-    console.warn("applyImageAssistButton が見つかりません。index.html のボタンIDを確認してください。");
   }
 }
 
