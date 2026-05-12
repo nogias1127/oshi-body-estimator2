@@ -136,6 +136,33 @@
               </select>
             </label>
           </div>
+          <section class="panel input-card">
+  <div class="card-header">
+    <div>
+      <p class="eyebrow">Image Assist</p>
+      <h2>立ち絵から比率を補正する</h2>
+      <p class="hint">
+        立ち絵画像を読み込み、頭頂・あご・肩・股下・足先を指定して、頭身や脚長傾向を推定します。
+      </p>
+    </div>
+  </div>
+
+  <label class="field">
+    <span class="field-label">立ち絵画像</span>
+    <input id="poseImageInput" type="file" accept="image/*" />
+  </label>
+
+  <div class="pose-tool">
+    <canvas id="poseCanvas"></canvas>
+  </div>
+
+  <div class="button-row">
+    <button id="resetPointsButton" class="button secondary" type="button">ポイントをリセット</button>
+    <button id="applyImageAssistButton" class="button primary" type="button">入力欄に反映</button>
+  </div>
+
+  <div id="imageAssistResult" class="assist-result"></div>
+</section>
         </section>
 
         <section class="panel input-card">
