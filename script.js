@@ -1,4 +1,13 @@
 /* =========================================================
+  推し身体推定メーカー - script.js
+  ---------------------------------------------------------
+  画像必須版：
+  1. 入力欄は「名前・身長・手の印象」を基本にする
+  2. 頭身・脚長・肩幅・体格傾向は立ち絵画像の9点指定から補助推定する
+  3. 結果を画面表示・コピー・PNG保存する
+========================================================= */
+
+/* =========================================================
   0. DOM取得ショートカット
 ========================================================= */
 
@@ -35,6 +44,16 @@ const posePointState = {
   points: [],
   result: null
 };
+
+const imageAssistProfile = {
+  enabled: false,
+  headRatio: null,
+  legType: null,
+  frameType: null,
+  bodyType: null
+};
+
+let lastPoseClickTime = 0;
 
 
 /* =========================================================
@@ -229,25 +248,49 @@ function escapeHtml(value) {
     .replaceAll("'", "&#039;");
 }
 
+function resetImageAssistProfile() {
+  imageAssistProfile.enabled = false;
+  imageAssistProfile.headRatio = null;
+  imageAssistProfile.legType = null;
+  imageAssistProfile.frameType = null;
+  imageAssistProfile.bodyType = null;
+}
+
+function clearImageAssistResult() {
+  const resultBox = $("imageAssistResult");
+  if (resultBox) {
+    resultBox.innerHTML = "";
+  }
+}
+
 
 /* =========================================================
   4. 身体推定メイン処理
 ========================================================= */
 
 function estimate() {
-  const name = $("oshiName").value.trim() || "あの人";
-  const height = Number($("height").value);
-
-  const frameType = getSelectedValue("frameType", "adultMale");
-  const bodyType = getSelectedValue("bodyType", "standard");
-  const headRatio = Number(getSelectedValue("headRatio", "7.5"));
+  const name = $("oshiName")?.value.trim() || "あの人";
+  const height = Number($("height")?.value);
   const handType = getSelectedValue("handType", "normal");
-  const legType = getSelectedValue("legType", "normal");
 
   if (!height || height < 100 || height > 250) {
     alert("推しの身長を100〜250cmの範囲で入力してください。");
     return;
   }
+
+  const effectiveProfile = imageAssistProfile.enabled
+    ? imageAssistProfile
+    : getEffectiveImageProfile();
+
+  if (!effectiveProfile) {
+    alert("先に立ち絵画像を読み込み、9つの測定点を指定してください。");
+    return;
+  }
+
+  const frameType = effectiveProfile.frameType || "adultMale";
+  const bodyType = effectiveProfile.bodyType || "standard";
+  const headRatio = Number(effectiveProfile.headRatio || 7.5);
+  const legType = effectiveProfile.legType || "normal";
 
   const frame = frameProfiles[frameType] || frameProfiles.adultMale;
   const body = bodyProfiles[bodyType] || bodyProfiles.standard;
@@ -340,26 +383,32 @@ function estimate() {
     height,
     handLength,
     shoeSize,
-    userHeight: Number($("userHeight").value),
-    userHand: Number($("userHand").value),
-    userShoe: Number($("userShoe").value)
+    userHeight: Number($("userHeight")?.value),
+    userHand: Number($("userHand")?.value),
+    userShoe: Number($("userShoe")?.value)
   });
 
-  $("resultTitle").textContent = `${name}の推定身体情報`;
-  $("summaryText").textContent = createSummary(name, frame, body, hand, leg, height, shoulder, handLength);
+  if ($("resultTitle")) $("resultTitle").textContent = `${name}の推定身体情報`;
+  if ($("summaryText")) {
+    $("summaryText").textContent = createSummary(name, frame, body, hand, leg, height, shoulder, handLength);
+  }
 
   renderTable($("basicTable"), basicRows);
   renderTable($("detailTable"), detailRows);
   renderList($("memoList"), memos);
   renderList($("compareList"), compareMemos);
 
-  $("compareCard").classList.toggle("hidden", compareMemos.length === 0);
-  $("resultSection").classList.remove("hidden");
+  const compareCard = $("compareCard");
+  if (compareCard) {
+    compareCard.classList.toggle("hidden", compareMemos.length === 0);
+  }
+
+  if ($("resultSection")) $("resultSection").classList.remove("hidden");
 
   const resultText = buildCopyText(name, basicRows, detailRows, memos, compareMemos);
-  $("copyButton").dataset.copyText = resultText;
+  if ($("copyButton")) $("copyButton").dataset.copyText = resultText;
 
-  $("resultSection").scrollIntoView({ behavior: "smooth", block: "start" });
+  $("resultSection")?.scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
 function createSummary(name, frame, body, hand, leg, height, shoulder, handLength) {
@@ -370,16 +419,16 @@ function createSummary(name, frame, body, hand, leg, height, shoulder, handLengt
         ? "肩まわりはすっきりしていて"
         : "肩幅は自然で";
 
-  return `${name}は、${frame.label}ベースの${body.label}寄り、${round(height)}cm想定です。${shoulderImpression}、${frame.comment}${body.comment}${hand.comment}${leg.comment} 手の長さは約${round(handLength)}cmで、触れた時のサイズ感を想像しやすい推定になっています。`;
+  return `${name}は、画像補正から${frame.label}ベースの${body.label}寄り、${round(height)}cm想定です。${shoulderImpression}、${frame.comment}${body.comment}${hand.comment}${leg.comment} 手の長さは約${round(handLength)}cmで、触れた時のサイズ感を想像しやすい推定になっています。`;
 }
 
 function createMemos(data) {
   const memos = [];
 
-  memos.push(`身体ベースは「${data.frame.label}」。${data.frame.comment}`);
-  memos.push(`体格タイプは「${data.body.label}」。${data.body.comment}`);
-  memos.push(`手の印象は「${data.hand.label}」。手長は約${round(data.handLength)}cmで、手を重ねる描写や恋人繋ぎのサイズ感の目安になります。`);
-  memos.push(`脚の印象は「${data.leg.label}」。股下は約${round(data.inseam)}cmで、立ち姿や歩幅のイメージ作りに使えます。`);
+  memos.push(`身体ベースは画像補正から「${data.frame.label}」として扱います。${data.frame.comment}`);
+  memos.push(`体格タイプは画像補正から「${data.body.label}」寄りとして扱います。${data.body.comment}`);
+  memos.push(`手の印象は手動入力の「${data.hand.label}」。手長は約${round(data.handLength)}cmで、手を重ねる描写や恋人繋ぎのサイズ感の目安になります。`);
+  memos.push(`脚の印象は画像補正から「${data.leg.label}」。股下は約${round(data.inseam)}cmで、立ち姿や歩幅のイメージ作りに使えます。`);
 
   if (data.chest - data.waist > 16) {
     memos.push("胸囲とウエストの差が出やすく、服越しにも上半身のラインがすっきり見えるタイプです。");
@@ -558,7 +607,7 @@ async function saveResultAsPng() {
       ignoreElements: (element) => element.hasAttribute("data-html2canvas-ignore")
     });
 
-    const name = sanitizeFileName($("oshiName").value || "あの人");
+    const name = sanitizeFileName($("oshiName")?.value || "あの人");
     const fileName = `${name}_推定身体情報.png`;
 
     const blob = await new Promise((resolve) => {
@@ -603,21 +652,19 @@ async function saveResultAsPng() {
 ========================================================= */
 
 function resetForm() {
-  $("oshiName").value = "";
-  $("height").value = "";
+  if ($("oshiName")) $("oshiName").value = "";
+  if ($("height")) $("height").value = "";
 
-  setValueIfExists("frameType", "adultMale");
-  setValueIfExists("bodyType", "standard");
-  setValueIfExists("headRatio", "7.5");
   setValueIfExists("handType", "normal");
-  setValueIfExists("legType", "normal");
 
-  $("userHeight").value = "";
-  $("userHand").value = "";
-  $("userShoe").value = "";
+  if ($("userHeight")) $("userHeight").value = "";
+  if ($("userHand")) $("userHand").value = "";
+  if ($("userShoe")) $("userShoe").value = "";
 
-  $("resultSection").classList.add("hidden");
-  $("copyButton").dataset.copyText = "";
+  resetImageAssistProfile();
+
+  if ($("resultSection")) $("resultSection").classList.add("hidden");
+  if ($("copyButton")) $("copyButton").dataset.copyText = "";
 }
 
 
@@ -666,6 +713,7 @@ function resetPoseImage() {
 
   posePointState.points = [];
   posePointState.result = null;
+  resetImageAssistProfile();
 
   clearPoseCanvas();
 
@@ -677,11 +725,7 @@ function resetPoseImage() {
     poseTool.classList.remove("is-loaded");
   }
 
-  const resultBox = $("imageAssistResult");
-  if (resultBox) {
-    resultBox.innerHTML = "";
-  }
-
+  clearImageAssistResult();
   setPoseMessage("立ち絵画像を選択すると、ここに表示されます。");
 }
 
@@ -754,14 +798,12 @@ function handlePoseImageUpload(event) {
 
     posePointState.points = [];
     posePointState.result = null;
+    resetImageAssistProfile();
 
-drawPoseOverlay();
-setPoseMessage("頭頂をクリックしてください。");
-
-    const resultBox = $("imageAssistResult");
-    if (resultBox) {
-      resultBox.innerHTML = "";
-    }
+    drawPoseOverlay();
+    clearImageAssistResult();
+    updateImageAssistResult();
+    setPoseMessage("頭頂をクリックしてください。");
   };
 
   image.onerror = () => {
@@ -780,6 +822,10 @@ setPoseMessage("頭頂をクリックしてください。");
 
 function getNextPosePoint() {
   return posePoints[posePointState.points.length] || null;
+}
+
+function getPosePoint(key) {
+  return posePointState.points.find((point) => point.key === key);
 }
 
 function getCanvasPoint(event, canvas) {
@@ -842,33 +888,42 @@ function drawPoseOverlay() {
 
   drawNextPoseGuide(ctx, canvas);
 }
+
 function drawNextPoseGuide(ctx, canvas) {
   const nextPoint = getNextPosePoint();
 
   if (!nextPoint) {
-    drawGuideBadge(ctx, canvas, "ポイント指定完了", "入力欄に反映できます");
+    drawGuideBadge(ctx, canvas, "ポイント指定完了", "この画像補正を使えます", "bottom");
     return;
   }
 
   const currentNumber = posePointState.points.length + 1;
   const totalNumber = posePoints.length;
 
+  const position =
+    nextPoint.key === "leftFoot" || nextPoint.key === "rightFoot"
+      ? "top"
+      : "bottom";
+
   drawGuideBadge(
     ctx,
     canvas,
     `次は ${currentNumber}/${totalNumber}：${nextPoint.label}`,
-    getPosePointGuideText(nextPoint.key)
+    getPosePointGuideText(nextPoint.key),
+    position
   );
 }
 
-function drawGuideBadge(ctx, canvas, title, detail) {
+function drawGuideBadge(ctx, canvas, title, detail, position = "bottom") {
   const padding = 14;
   const width = Math.min(420, canvas.width - 32);
   const height = detail ? 74 : 48;
   const radius = 12;
 
   const x = (canvas.width - width) / 2;
-  const y = canvas.height - height - 16;
+  const y = position === "top"
+    ? 16
+    : canvas.height - height - 16;
 
   ctx.save();
 
@@ -922,8 +977,6 @@ function getPosePointGuideText(key) {
   return guides[key] || "該当する位置をクリック";
 }
 
-let lastPoseClickTime = 0;
-
 function handlePoseCanvasClick(event) {
   event.preventDefault();
 
@@ -957,6 +1010,7 @@ function handlePoseCanvasClick(event) {
     y: point.y
   });
 
+  resetImageAssistProfile();
   drawPoseOverlay();
   updateImageAssistResult();
 
@@ -965,12 +1019,8 @@ function handlePoseCanvasClick(event) {
   if (afterNextPoint) {
     setPoseMessage(`次は「${afterNextPoint.label}」をクリックしてください。`);
   } else {
-    setPoseMessage("ポイント指定が完了しました。必要なら入力欄に反映できます。");
+    setPoseMessage("ポイント指定が完了しました。必要なら『この画像補正を使う』を押してください。");
   }
-}
-
-function getPosePoint(key) {
-  return posePointState.points.find((point) => point.key === key);
 }
 
 function calculateImageAssist() {
@@ -1114,6 +1164,60 @@ function inferSilhouetteType(shoulderWaistRatio) {
   return "soft";
 }
 
+function inferFrameTypeFromImage(result) {
+  if (!result) {
+    return "adultMale";
+  }
+
+  if (result.shoulderType === "narrow" || result.silhouetteType === "soft") {
+    return "neutralMale";
+  }
+
+  return "adultMale";
+}
+
+function inferBodyTypeFromImage(result) {
+  if (!result) {
+    return "standard";
+  }
+
+  if (
+    result.waistType === "slim" &&
+    (result.shoulderType === "narrow" || result.silhouetteType === "soft")
+  ) {
+    return "slender";
+  }
+
+  if (result.waistType === "slim" || result.silhouetteType === "slightlyInverted") {
+    return "slim";
+  }
+
+  if (result.shoulderType === "wide" && result.waistType !== "thick") {
+    return "muscular";
+  }
+
+  if (result.shoulderType === "veryWide" || result.waistType === "thick") {
+    return "solid";
+  }
+
+  return "standard";
+}
+
+function getEffectiveImageProfile() {
+  const result = posePointState.result || calculateImageAssist();
+
+  if (!result) {
+    return null;
+  }
+
+  return {
+    headRatio: result.headRatio,
+    legType: result.legType,
+    frameType: inferFrameTypeFromImage(result),
+    bodyType: inferBodyTypeFromImage(result)
+  };
+}
+
 function getLegTypeLabel(value) {
   const labels = {
     short: "短め",
@@ -1184,14 +1288,17 @@ function updateImageAssistResult() {
     return;
   }
 
+  const profile = getEffectiveImageProfile();
+
   resultBox.innerHTML = `
     <div class="assist-result__box">
-      <p><strong>画像からの推定</strong></p>
-      <p>頭身：約${round(result.rawHeadRatio, 2)}頭身 → 入力候補：${result.headRatio}頭身</p>
+      <p><strong>画像からの補正候補</strong></p>
+      <p>頭身：約${round(result.rawHeadRatio, 2)}頭身 → 採用候補：${profile.headRatio}頭身</p>
       <p>股下比率：約${round(result.inseamRatio * 100, 1)}% → 脚の印象：${escapeHtml(getLegTypeLabel(result.legType))}</p>
       <p>肩幅比率：約${round(result.shoulderRatio * 100, 1)}% → 肩幅の印象：${escapeHtml(getShoulderTypeLabel(result.shoulderType))}</p>
       <p>ウエスト幅比率：約${round(result.waistRatio * 100, 1)}% → 胴まわりの印象：${escapeHtml(getWaistTypeLabel(result.waistType))}</p>
       <p>肩幅÷ウエスト：約${round(result.shoulderWaistRatio, 2)} → シルエット：${escapeHtml(getSilhouetteTypeLabel(result.silhouetteType))}</p>
+      <p>自動判定：${escapeHtml(frameProfiles[profile.frameType]?.label || "成人男性寄り")} / ${escapeHtml(bodyProfiles[profile.bodyType]?.label || "標準")}</p>
     </div>
   `;
 }
@@ -1199,38 +1306,39 @@ function updateImageAssistResult() {
 function resetPosePointsOnly() {
   posePointState.points = [];
   posePointState.result = null;
+  resetImageAssistProfile();
 
   if (poseImageState.image) {
-drawPoseOverlay();
-setPoseMessage("頭頂をクリックしてください。");
+    drawPoseOverlay();
+    updateImageAssistResult();
+    setPoseMessage("頭頂をクリックしてください。");
   } else {
     clearPoseCanvas();
+    clearImageAssistResult();
     setPoseMessage("立ち絵画像を選択すると、ここに表示されます。");
-  }
-
-  const resultBox = $("imageAssistResult");
-  if (resultBox) {
-    resultBox.innerHTML = "";
   }
 }
 
 function applyImageAssistResult() {
-  const result = posePointState.result || calculateImageAssist();
+  const profile = getEffectiveImageProfile();
 
-  if (!result) {
+  if (!profile) {
     alert("先に画像上で、頭頂・あご・左右肩・左右ウエスト・股下・左右足先を指定してください。");
     return;
   }
 
-  setValueIfExists("headRatio", String(result.headRatio));
-  setValueIfExists("legType", result.legType);
+  imageAssistProfile.enabled = true;
+  imageAssistProfile.headRatio = profile.headRatio;
+  imageAssistProfile.legType = profile.legType;
+  imageAssistProfile.frameType = profile.frameType;
+  imageAssistProfile.bodyType = profile.bodyType;
 
   const resultBox = $("imageAssistResult");
 
   if (resultBox) {
     resultBox.innerHTML += `
       <p class="assist-result__applied">
-        入力欄に反映しました。
+        この画像補正を使用します。
       </p>
     `;
   }
