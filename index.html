@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>推し身体推定メーカー</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+
+<body>
+  <header class="hero">
+    <div class="hero-inner">
+      <h1>推し身体推定メーカー</h1>
+      <p class="lead">
+        公式身長しか分からない推しの、頭のてっぺんから爪先までをざっくり推定します。
+      </p>
+<details class="about-box">
+  <summary>※推定について</summary>
+  <p>
+    このツールは、入力された身長・体格・頭身・手足の印象をもとに、肩幅・胸囲・股下・手足のサイズなどをざっくり推定するものです。
+    結果は公式設定や実在人物の正確な計測値ではなく、創作・妄想・サイズ感確認のための目安です。
+    体格・絵柄・衣装・ポーズによって印象は変わるため、「だいたいこのくらい」として創作時のサイズ感確認や妄想補助としてご利用ください。
+  </p>
+  <p>
+    このツールへの入力内容はサーバー等には送信されず、どこにも保存されません。入力内容はブラウザ上で処理されますので安心してお楽しみください。
+  </p>
+</details>
+    </div>
+  </header>
+
+  <main class="container">
+    <div class="tool-layout">
+      <aside class="side-panel" aria-label="使い方">
+        <div class="side-panel__header">
+          <p class="eyebrow">Guide</p>
+          <h2>使い方</h2>
+        </div>
+
+        <ol class="step-list">
+          <li>
+            <span class="step-list__num">1</span>
+            <p>推しの基本情報を入力</p>
+          </li>
+          <li>
+            <span class="step-list__num">2</span>
+            <p>任意であなたとの比較情報を追加</p>
+          </li>
+          <li>
+            <span class="step-list__num">3</span>
+            <p>推定結果を確認</p>
+          </li>
+          <li>
+            <span class="step-list__num">4</span>
+            <p>必要に応じてコピー・PNG保存</p>
+          </li>
+        </ol>
+
+        <div class="side-note">
+          <p>
+            入力内容はブラウザ上で処理されます。創作時のサイズ感確認や妄想補助として使えます。
+          </p>
+        </div>
+      </aside>
+
+      <div class="main-panel">
+        <section class="panel input-card">
+          <div class="card-header">
+            <div>
+              <p class="eyebrow">Basic Data</p>
+              <h2>推しの基本情報</h2>
+              <p class="hint">
+                身長・体格・頭身など、推定のベースになる情報を入力します。
+              </p>
+            </div>
+          </div>
+
+          <div class="form-grid">
+            <label class="field">
+              <span class="field-label">推しの名前</span>
+              <input id="oshiName" type="text" placeholder="例：あのひと、彼" />
+            </label>
+
+            <label class="field">
+              <span class="field-label">推しの身長（cm）</span>
+              <input id="height" type="number" min="100" max="250" step="0.1" placeholder="例：175.2" />
+            </label>
+            
+<label class="field">
+  <span class="field-label">身体ベース</span>
+  <select id="frameType">
+    <option value="adultMale" selected>成人男性寄り</option>
+    <option value="neutralMale">中性的男性</option>
+    <option value="boyishMale">少年寄り男性</option>
+  </select>
+</label>
+            <label class="field">
+              <span class="field-label">体格タイプ</span>
+              <select id="bodyType">
+                <option value="slender">華奢</option>
+                <option value="slim">細身</option>
+                <option value="standard" selected>標準</option>
+                <option value="muscular">筋肉質</option>
+                <option value="solid">がっしり</option>
+              </select>
+            </label>
+
+            <label class="field">
+              <span class="field-label">頭身</span>
+              <select id="headRatio">
+                <option value="6.5">6.5頭身</option>
+                <option value="7">7頭身</option>
+                <option value="7.5" selected>7.5頭身</option>
+                <option value="8">8頭身</option>
+                <option value="8.5">8.5頭身</option>
+                <option value="9">9頭身</option>
+              </select>
+            </label>
+
+            <label class="field">
+              <span class="field-label">手の印象</span>
+              <select id="handType">
+                <option value="small">小さめ</option>
+                <option value="normal" selected>標準</option>
+                <option value="large">大きめ</option>
+                <option value="long">指が長い</option>
+              </select>
+            </label>
+
+            <label class="field">
+              <span class="field-label">脚の長さ印象</span>
+              <select id="legType">
+                <option value="short">短め</option>
+                <option value="normal" selected>標準</option>
+                <option value="long">長め</option>
+                <option value="veryLong">かなり長め</option>
+              </select>
+            </label>
+          </div>
+        </section>
+
+        <section class="panel input-card">
+          <div class="card-header">
+            <span class="card-icon ui-icon ui-icon--compare" aria-hidden="true"></span>
+            <div>
+              <p class="eyebrow">Optional Compare</p>
+              <h2>あなたとの比較</h2>
+              <p class="hint">
+                入力すると、身長差・手の差・靴サイズ差の目安が表示されます。
+              </p>
+            </div>
+          </div>
+
+          <div class="form-grid">
+            <label class="field">
+              <span class="field-label">あなたの身長（cm）</span>
+              <input id="userHeight" type="number" min="100" max="220" step="0.1" placeholder="例：158.3" />
+            </label>
+
+<div class="field">
+  <div class="field-label-row">
+    <label class="field-label" for="userHand">あなたの手の長さ（cm）</label>
+
+    <span class="help-tip">
+      <button class="help-button" type="button" aria-label="手の長さの測り方"></button>
+      <span class="help-text" role="tooltip">
+        手首の付け根のシワあたりから、中指の先端までの長さです。
+      </span>
+    </span>
+  </div>
+  <input id="userHand" type="number" min="10" max="30" step="0.1" placeholder="未入力でもOK" />
+</div>
+
+            <label class="field">
+              <span class="field-label">あなたの靴サイズ（cm）</span>
+              <input id="userShoe" type="number" min="18" max="32" step="0.5" placeholder="例：23.5" />
+            </label>
+          </div>
+
+          <div class="button-row action-bar">
+            <button id="estimateButton" class="button primary" type="button">
+              推定する
+            </button>
+
+            <button id="resetButton" class="button secondary" type="button">
+              リセット
+            </button>
+          </div>
+        </section>
+
+        <section id="resultSection" class="result-section hidden">
+          <div class="result-export-frame">
+            <div class="result-header">
+              <div>
+                <p class="eyebrow">Estimated Body Data</p>
+                <h2 id="resultTitle">推定結果</h2>
+              </div>
+
+              <div class="result-actions" data-html2canvas-ignore="true">
+                <button id="copyButton" class="button secondary small" type="button">
+                  結果をコピー
+                </button>
+                <button id="savePngButton" class="button secondary small" type="button">
+                  <span class="ui-icon ui-icon--save" aria-hidden="true"></span>
+                  PNG保存
+                </button>
+              </div>
+            </div>
+
+            <div class="summary-card">
+              <div class="summary-card__header">
+                <span class="summary-card__mark">✦</span>
+                <h3>ひとこと</h3>
+              </div>
+              <p id="summaryText"></p>
+            </div>
+
+            <div class="result-layout">
+              <div class="panel result-card">
+                <div class="result-card__header">
+                  <span class="result-card__icon">01</span>
+                  <h3>基本寸法</h3>
+                </div>
+                <table>
+                  <tbody id="basicTable"></tbody>
+                </table>
+              </div>
+
+              <div class="panel result-card">
+                <div class="result-card__header">
+                  <span class="result-card__icon">02</span>
+                  <h3>手・足・指まわり</h3>
+                </div>
+                <table>
+                  <tbody id="detailTable"></tbody>
+                </table>
+              </div>
+
+              <div class="panel result-card">
+                <div class="result-card__header">
+                  <span class="result-card__icon">03</span>
+                  <h3>創作メモ</h3>
+                </div>
+                <ul id="memoList" class="memo-list"></ul>
+              </div>
+
+              <div class="panel result-card" id="compareCard">
+                <div class="result-card__header">
+                  <span class="result-card__icon">04</span>
+                  <h3>あなたとの比較</h3>
+                </div>
+                <ul id="compareList" class="memo-list"></ul>
+              </div>
+            </div>
+
+            <p class="disclaimer">
+              <p class="disclaimer">
+  この推定は、主に男性キャラクター向けの創作・妄想・サイズ感確認用の目安です。実在人物や公式設定の正確な身体情報を示すものではありません。
+</p>
+            </p>
+          </div>
+        </section>
+      </div>
+    </div>
+  </main>
+
+<footer class="footer">
+  <p>
+    推し身体推定メーカー α版<br>
+    Created by <a href="https://x.com/nogi_on_haka" target="_blank" rel="noopener noreferrer">nogi</a>
+  </p>
+</footer>
+
+  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+  <script src="./script.js"></script>
+</body>
+</html>
