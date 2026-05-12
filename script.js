@@ -334,25 +334,26 @@ function estimate() {
   const imageResult = posePointState.result || calculateImageAssist();
   const ringSizes = createRingSizeMap(ringSize);
 
-  const basicRows = createBodyContourRows({
-    frame,
-    body,
-    hand,
-    leg,
-    height,
-    minWeight,
-    maxWeight,
-    headHeight,
-    neck,
-    shoulder,
-    chest,
-    waist,
-    hip,
-    torso,
-    inseam,
-    arm,
-    sleeve
-  });
+const basicRows = createBodyContourRows({
+  frame,
+  body,
+  hand,
+  leg,
+  height,
+  minWeight,
+  maxWeight,
+  headHeight,
+  neck,
+  shoulder,
+  chest,
+  waist,
+  hip,
+  torso,
+  inseam,
+  arm,
+  sleeve,
+  imageResult
+});
 
   const detailRows = createHandFootRows({
     handLength,
@@ -426,10 +427,16 @@ function createBodyContourRows(data) {
   return [
     ["身体の印象", getBodyImpressionLabel(data.frame, data.body)],
     ["体格の輪郭", getBodyContourLabel(data.frame, data.body)],
+    ["シルエット", getImageSilhouetteDescription(data.imageResult)],
+    ["肩と腰の差", getShoulderWaistDescription(data.imageResult)],
+    ["上半身の存在感", getUpperBodyPresenceDescription(data.imageResult, data.shoulder, data.height)],
+    ["重心の印象", getBodyBalanceDescription(data.imageResult)],
+    ["服越しのライン", getClothingLineDescription(data.frame, data.body, data.imageResult)],
+    ["抱きしめた時の面積感", getEmbraceSurfaceDescription(data.shoulder, data.chest, data.height)],
     ["身長", `${round(data.height)}cm`],
-    ["抱きしめた時の重み", `${rangeText(data.minWeight, data.maxWeight, "kg")}くらいの体重感`],
+    ["体重", `${rangeText(data.minWeight, data.maxWeight, "kg")}kg`],
     ["頭の大きさ", `${round(data.headHeight)}cm前後`],
-    ["首元の印象", `${round(data.neck)}cm前後 / ${getNeckImpression(data.neck, data.height)}`],
+    ["首まわり", `${round(data.neck)}cm前後 / ${getNeckImpression(data.neck, data.height)}`],
     ["肩幅", `${round(data.shoulder)}cm前後 / ${getShoulderImpression(data.shoulder, data.height)}`],
     ["胸まわり", `${rangeText(data.chest * 0.97, data.chest * 1.03)} / ${getChestImpression(data.chest, data.waist)}`],
     ["腰まわり", `${rangeText(data.waist * 0.97, data.waist * 1.03)} / ${getWaistImpression(data.waist, data.height)}`],
@@ -450,10 +457,10 @@ function createHandFootRows(data) {
     ["上腕周り", `${round(data.upperArm)}cm前後`],
     ["太もも周り", `${round(data.thigh)}cm前後`],
     ["ふくらはぎ", `${round(data.calf)}cm前後`],
-    ["左手薬指", `${data.ringSizes.ring}号相当`],
     ["親指リング", `${data.ringSizes.thumb}号相当`],
     ["人差し指リング", `${data.ringSizes.index}号相当`],
     ["中指リング", `${data.ringSizes.middle}号相当`],
+    ["薬指", `${data.ringSizes.ring}号相当`],
     ["小指リング", `${data.ringSizes.little}号相当`],
     ["足長", `${round(data.footLength)}cm前後`],
     ["足幅", `${round(data.footWidth)}cm前後`],
@@ -678,6 +685,122 @@ function getWaistImpression(waist, height) {
   }
 
   return "自然な腰まわり";
+}
+
+function getImageSilhouetteDescription(result) {
+  if (!result) {
+    return "画像補正なし";
+  }
+
+  const labels = {
+    invertedTriangle: "逆三角形寄り。肩から腰にかけて絞られる、上半身の存在感が出やすいラインです。",
+    slightlyInverted: "やや逆三角形寄り。肩まわりが自然に目立ち、腰へ向かってすっきり見えるラインです。",
+    straight: "直線的。肩から腰までの差が強すぎず、すらっとした縦の印象が出やすいラインです。",
+    soft: "なだらか。肩と腰の差が控えめで、柔らかく中性的に見えやすいラインです。"
+  };
+
+  return labels[result.silhouetteType] || "自然なシルエットです。";
+}
+
+function getShoulderWaistDescription(result) {
+  if (!result) {
+    return "画像補正なし";
+  }
+
+  const ratio = result.shoulderWaistRatio;
+
+  if (ratio >= 1.6) {
+    return `肩幅÷ウエスト：約${round(ratio, 2)}。肩幅がかなり勝つタイプで、正面立ちでも体格差が出やすいです。`;
+  }
+
+  if (ratio >= 1.4) {
+    return `肩幅÷ウエスト：約${round(ratio, 2)}。肩から腰へ絞られる印象があり、服越しにも上半身の形が出やすいです。`;
+  }
+
+  if (ratio >= 1.2) {
+    return `肩幅÷ウエスト：約${round(ratio, 2)}。肩と腰の差は自然で、すっきりした体型に見えやすいです。`;
+  }
+
+  return `肩幅÷ウエスト：約${round(ratio, 2)}。肩と腰の差は控えめで、柔らかくなだらかな輪郭に見えやすいです。`;
+}
+
+function getUpperBodyPresenceDescription(result, shoulder, height) {
+  const shoulderRatio = shoulder / height;
+
+  if (result?.shoulderType === "veryWide" || shoulderRatio > 0.255) {
+    return "肩まわりにかなり存在感があります。近くに立つと、上半身の大きさや頼もしさが伝わりやすいです。";
+  }
+
+  if (result?.shoulderType === "wide" || shoulderRatio > 0.245) {
+    return "肩まわりにほどよい存在感があります。服の上からでも体格の良さが出やすいです。";
+  }
+
+  if (result?.shoulderType === "narrow" || shoulderRatio < 0.235) {
+    return "肩まわりは控えめで、線の細さや軽やかさが出やすいです。";
+  }
+
+  return "肩まわりは自然で、極端に細すぎず大きすぎない上半身です。";
+}
+
+function getBodyBalanceDescription(result) {
+  if (!result) {
+    return "画像補正なし";
+  }
+
+  if (result.legType === "veryLong" && result.silhouetteType === "invertedTriangle") {
+    return "脚長かつ上半身にも存在感があり、かなり二次元映えする体型バランスです。";
+  }
+
+  if (result.legType === "veryLong" || result.legType === "long") {
+    return "脚が長めに見えるため、立ち姿がすらっと伸びやすいバランスです。";
+  }
+
+  if (result.silhouetteType === "soft") {
+    return "縦の迫力よりも、柔らかく自然な輪郭が出やすいバランスです。";
+  }
+
+  if (result.silhouetteType === "invertedTriangle") {
+    return "上半身に視線が集まりやすく、肩・胸まわりの存在感が印象に残りやすいバランスです。";
+  }
+
+  return "全体の重心は自然で、日常描写にも落とし込みやすいバランスです。";
+}
+
+function getClothingLineDescription(frame, body, result) {
+  const bodyKey = getProfileKey(bodyProfiles, body);
+
+  if (result?.silhouetteType === "invertedTriangle") {
+    return "ジャケット・シャツ・軍服系で肩のラインが映えやすいです。ウエストが絞られる服だと体格差が出やすいタイプです。";
+  }
+
+  if (result?.silhouetteType === "slightlyInverted") {
+    return "スーツや制服のような直線的な服で、肩から腰にかけてのラインがきれいに出やすいです。";
+  }
+
+  if (bodyKey === "slender" || bodyKey === "slim") {
+    return "薄手のシャツや細身の衣装で、すっきりした線が出やすいです。布の余りや袖口のゆるさも描写しやすいタイプです。";
+  }
+
+  if (bodyKey === "solid" || bodyKey === "muscular") {
+    return "厚手の服やジャケットでも、肩・胸・腕まわりに身体の厚みが出やすいです。";
+  }
+
+  return "極端な主張は少なく、日常服でも衣装でも自然に馴染みやすいラインです。";
+}
+
+function getEmbraceSurfaceDescription(shoulder, chest, height) {
+  const shoulderRatio = shoulder / height;
+  const chestRatio = chest / height;
+
+  if (shoulderRatio > 0.255 || chestRatio > 0.535) {
+    return "抱きしめた時に上半身の面積を感じやすく、腕や胸元に包まれる印象が出やすいです。";
+  }
+
+  if (shoulderRatio < 0.235 || chestRatio < 0.5) {
+    return "抱きしめた時の面積感は控えめで、細さや軽さを感じやすいです。";
+  }
+
+  return "抱きしめた時の面積感は自然で、近づいた時にほどよく身体の存在を感じるタイプです。";
 }
 
 function createHeightDistanceMemo(diff, abs) {
